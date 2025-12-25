@@ -130,6 +130,60 @@ class Product extends Model
     }
 
     /**
+     * Get stock records per warehouse.
+     *
+     * @return HasMany<ProductStock, $this>
+     */
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(ProductStock::class);
+    }
+
+    /**
+     * Get inventory movements.
+     *
+     * @return HasMany<InventoryMovement, $this>
+     */
+    public function inventoryMovements(): HasMany
+    {
+        return $this->hasMany(InventoryMovement::class);
+    }
+
+    /**
+     * Get stock in a specific warehouse.
+     */
+    public function getStockInWarehouse(Warehouse $warehouse): int
+    {
+        return $this->stocks()
+            ->where('warehouse_id', $warehouse->id)
+            ->value('quantity') ?? 0;
+    }
+
+    /**
+     * Get total stock across all warehouses.
+     */
+    public function getTotalStockAttribute(): int
+    {
+        return $this->stocks()->sum('quantity');
+    }
+
+    /**
+     * Get total stock value across all warehouses.
+     */
+    public function getTotalStockValueAttribute(): int
+    {
+        return $this->stocks()->sum('total_value');
+    }
+
+    /**
+     * Sync current_stock from product_stocks table.
+     */
+    public function syncCurrentStock(): void
+    {
+        $this->update(['current_stock' => $this->total_stock]);
+    }
+
+    /**
      * Check if this is a physical product.
      */
     public function isProduct(): bool
@@ -228,17 +282,17 @@ class Product extends Model
     {
         $prefix = $prefix ?? 'PRD';
 
-        $last = static::where('sku', 'like', $prefix . '-%')
+        $last = static::where('sku', 'like', $prefix.'-%')
             ->orderByDesc('sku')
             ->first();
 
         if ($last) {
             $lastNum = (int) substr($last->sku, strlen($prefix) + 1);
 
-            return $prefix . '-' . str_pad($lastNum + 1, 5, '0', STR_PAD_LEFT);
+            return $prefix.'-'.str_pad($lastNum + 1, 5, '0', STR_PAD_LEFT);
         }
 
-        return $prefix . '-00001';
+        return $prefix.'-00001';
     }
 
     /**

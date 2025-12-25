@@ -4,17 +4,22 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AttachmentController;
 use App\Http\Controllers\Api\V1\BankReconciliationController;
 use App\Http\Controllers\Api\V1\BillController;
+use App\Http\Controllers\Api\V1\BudgetController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FiscalPeriodController;
+use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\JournalEntryController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RecurringTemplateController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,6 +55,25 @@ Route::prefix('v1')->group(function () {
     Route::get('products-low-stock', [ProductController::class, 'lowStock']);
     Route::get('products-price-list', [ProductController::class, 'priceList']);
     Route::get('products-lookup', [ProductController::class, 'lookup']);
+
+    // Warehouses (Gudang)
+    Route::apiResource('warehouses', WarehouseController::class);
+    Route::post('warehouses/{warehouse}/set-default', [WarehouseController::class, 'setDefault']);
+    Route::get('warehouses/{warehouse}/stock-summary', [WarehouseController::class, 'stockSummary']);
+
+    // Inventory (Inventori)
+    Route::prefix('inventory')->group(function () {
+        Route::get('movements', [InventoryController::class, 'movements']);
+        Route::post('stock-in', [InventoryController::class, 'stockIn']);
+        Route::post('stock-out', [InventoryController::class, 'stockOut']);
+        Route::post('adjust', [InventoryController::class, 'adjust']);
+        Route::post('transfer', [InventoryController::class, 'transfer']);
+        Route::get('stock-card/{product}', [InventoryController::class, 'stockCard']);
+        Route::get('valuation', [InventoryController::class, 'valuation']);
+        Route::get('summary', [InventoryController::class, 'summary']);
+        Route::get('movement-summary', [InventoryController::class, 'movementSummary']);
+        Route::get('stock-levels', [InventoryController::class, 'stockLevels']);
+    });
 
     // Journal Entries (Jurnal Umum)
     Route::get('journal-entries', [JournalEntryController::class, 'index']);
@@ -87,6 +111,20 @@ Route::prefix('v1')->group(function () {
     Route::post('fiscal-periods/{fiscal_period}/close', [FiscalPeriodController::class, 'close']);
     Route::post('fiscal-periods/{fiscal_period}/reopen', [FiscalPeriodController::class, 'reopen']);
     Route::get('fiscal-periods/{fiscal_period}/closing-checklist', [FiscalPeriodController::class, 'closingChecklist']);
+
+    // Budgets (Anggaran)
+    Route::apiResource('budgets', BudgetController::class);
+    Route::post('budgets/{budget}/lines', [BudgetController::class, 'addLine']);
+    Route::put('budgets/{budget}/lines/{line}', [BudgetController::class, 'updateLine']);
+    Route::delete('budgets/{budget}/lines/{line}', [BudgetController::class, 'deleteLine']);
+    Route::post('budgets/{budget}/approve', [BudgetController::class, 'approve']);
+    Route::post('budgets/{budget}/reopen', [BudgetController::class, 'reopen']);
+    Route::post('budgets/{budget}/close', [BudgetController::class, 'close']);
+    Route::post('budgets/{budget}/copy', [BudgetController::class, 'copy']);
+    Route::get('budgets/{budget}/comparison', [BudgetController::class, 'comparison']);
+    Route::get('budgets/{budget}/monthly-breakdown', [BudgetController::class, 'monthlyBreakdown']);
+    Route::get('budgets/{budget}/summary', [BudgetController::class, 'summary']);
+    Route::get('budgets/{budget}/over-budget', [BudgetController::class, 'overBudget']);
 
     // Bank Reconciliation (Rekonsiliasi Bank)
     Route::prefix('bank-transactions')->group(function () {
@@ -159,4 +197,14 @@ Route::prefix('v1')->group(function () {
         Route::get('bills', [ExportController::class, 'bills']);
         Route::get('tax-report', [ExportController::class, 'taxReport']);
     });
+
+    // Roles & Permissions (Peran & Hak Akses)
+    Route::apiResource('roles', RoleController::class);
+    Route::post('roles/{role}/sync-permissions', [RoleController::class, 'syncPermissions']);
+    Route::get('roles/{role}/users', [RoleController::class, 'users']);
+
+    Route::get('permissions', [PermissionController::class, 'index']);
+    Route::get('permissions/grouped', [PermissionController::class, 'grouped']);
+    Route::get('permissions/groups', [PermissionController::class, 'groups']);
+    Route::get('permissions/{permission}', [PermissionController::class, 'show']);
 });
