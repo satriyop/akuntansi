@@ -31,6 +31,7 @@ class Quotation extends Model
         'quotation_number',
         'revision',
         'contact_id',
+        'project_id',
         'quotation_date',
         'valid_until',
         'reference',

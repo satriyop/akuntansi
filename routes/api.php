@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AttachmentController;
 use App\Http\Controllers\Api\V1\BankReconciliationController;
 use App\Http\Controllers\Api\V1\BillController;
+use App\Http\Controllers\Api\V1\BomController;
 use App\Http\Controllers\Api\V1\BudgetController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\DashboardController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\PurchaseReturnController;
 use App\Http\Controllers\Api\V1\QuotationController;
@@ -165,6 +167,33 @@ Route::prefix('v1')->group(function () {
     Route::post('bills/{bill}/create-purchase-return', [PurchaseReturnController::class, 'createFromBill']);
     Route::get('bills/{bill}/purchase-returns', [PurchaseReturnController::class, 'forBill']);
     Route::get('purchase-returns-statistics', [PurchaseReturnController::class, 'statistics']);
+
+    // Bill of Materials (BOM)
+    Route::apiResource('boms', BomController::class);
+    Route::post('boms/{bom}/activate', [BomController::class, 'activate']);
+    Route::post('boms/{bom}/deactivate', [BomController::class, 'deactivate']);
+    Route::post('boms/{bom}/duplicate', [BomController::class, 'duplicate']);
+    Route::get('boms-for-product/{product}', [BomController::class, 'forProduct']);
+    Route::post('boms-calculate-cost', [BomController::class, 'calculateCost']);
+    Route::get('boms-statistics', [BomController::class, 'statistics']);
+
+    // Projects (Proyek)
+    Route::apiResource('projects', ProjectController::class);
+    Route::post('quotations/{quotation}/create-project', [ProjectController::class, 'createFromQuotation']);
+    Route::post('projects/{project}/start', [ProjectController::class, 'start']);
+    Route::post('projects/{project}/hold', [ProjectController::class, 'hold']);
+    Route::post('projects/{project}/resume', [ProjectController::class, 'resume']);
+    Route::post('projects/{project}/complete', [ProjectController::class, 'complete']);
+    Route::post('projects/{project}/cancel', [ProjectController::class, 'cancel']);
+    Route::post('projects/{project}/update-progress', [ProjectController::class, 'updateProgress']);
+    Route::post('projects/{project}/costs', [ProjectController::class, 'addCost']);
+    Route::put('projects/{project}/costs/{cost}', [ProjectController::class, 'updateCost']);
+    Route::delete('projects/{project}/costs/{cost}', [ProjectController::class, 'deleteCost']);
+    Route::post('projects/{project}/revenues', [ProjectController::class, 'addRevenue']);
+    Route::put('projects/{project}/revenues/{revenue}', [ProjectController::class, 'updateRevenue']);
+    Route::delete('projects/{project}/revenues/{revenue}', [ProjectController::class, 'deleteRevenue']);
+    Route::get('projects/{project}/summary', [ProjectController::class, 'summary']);
+    Route::get('projects-statistics', [ProjectController::class, 'statistics']);
 
     // Payments (Pembayaran)
     Route::get('payments', [PaymentController::class, 'index']);
