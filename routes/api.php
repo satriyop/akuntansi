@@ -19,10 +19,12 @@ use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseOrderController;
+use App\Http\Controllers\Api\V1\PurchaseReturnController;
 use App\Http\Controllers\Api\V1\QuotationController;
 use App\Http\Controllers\Api\V1\RecurringTemplateController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\SalesReturnController;
 use App\Http\Controllers\Api\V1\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
@@ -141,6 +143,28 @@ Route::prefix('v1')->group(function () {
     Route::post('invoices/{invoice}/create-delivery-order', [DeliveryOrderController::class, 'createFromInvoice']);
     Route::get('invoices/{invoice}/delivery-orders', [DeliveryOrderController::class, 'forInvoice']);
     Route::get('delivery-orders-statistics', [DeliveryOrderController::class, 'statistics']);
+
+    // Sales Returns (Retur Penjualan)
+    Route::apiResource('sales-returns', SalesReturnController::class);
+    Route::post('sales-returns/{sales_return}/submit', [SalesReturnController::class, 'submit']);
+    Route::post('sales-returns/{sales_return}/approve', [SalesReturnController::class, 'approve']);
+    Route::post('sales-returns/{sales_return}/reject', [SalesReturnController::class, 'reject']);
+    Route::post('sales-returns/{sales_return}/complete', [SalesReturnController::class, 'complete']);
+    Route::post('sales-returns/{sales_return}/cancel', [SalesReturnController::class, 'cancel']);
+    Route::post('invoices/{invoice}/create-sales-return', [SalesReturnController::class, 'createFromInvoice']);
+    Route::get('invoices/{invoice}/sales-returns', [SalesReturnController::class, 'forInvoice']);
+    Route::get('sales-returns-statistics', [SalesReturnController::class, 'statistics']);
+
+    // Purchase Returns (Retur Pembelian)
+    Route::apiResource('purchase-returns', PurchaseReturnController::class);
+    Route::post('purchase-returns/{purchase_return}/submit', [PurchaseReturnController::class, 'submit']);
+    Route::post('purchase-returns/{purchase_return}/approve', [PurchaseReturnController::class, 'approve']);
+    Route::post('purchase-returns/{purchase_return}/reject', [PurchaseReturnController::class, 'reject']);
+    Route::post('purchase-returns/{purchase_return}/complete', [PurchaseReturnController::class, 'complete']);
+    Route::post('purchase-returns/{purchase_return}/cancel', [PurchaseReturnController::class, 'cancel']);
+    Route::post('bills/{bill}/create-purchase-return', [PurchaseReturnController::class, 'createFromBill']);
+    Route::get('bills/{bill}/purchase-returns', [PurchaseReturnController::class, 'forBill']);
+    Route::get('purchase-returns-statistics', [PurchaseReturnController::class, 'statistics']);
 
     // Payments (Pembayaran)
     Route::get('payments', [PaymentController::class, 'index']);
