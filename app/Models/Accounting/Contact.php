@@ -41,6 +41,11 @@ class Contact extends Model
         'bank_account_name',
         'notes',
         'last_transaction_date',
+        // Subcontractor fields
+        'is_subcontractor',
+        'subcontractor_services',
+        'hourly_rate',
+        'daily_rate',
     ];
 
     protected function casts(): array
@@ -52,6 +57,11 @@ class Contact extends Model
             'early_discount_days' => 'integer',
             'is_active' => 'boolean',
             'last_transaction_date' => 'date',
+            // Subcontractor fields
+            'is_subcontractor' => 'boolean',
+            'subcontractor_services' => 'array',
+            'hourly_rate' => 'integer',
+            'daily_rate' => 'integer',
         ];
     }
 
@@ -85,6 +95,26 @@ class Contact extends Model
     public function recurringTemplates(): HasMany
     {
         return $this->hasMany(RecurringTemplate::class);
+    }
+
+    /**
+     * Get subcontractor work orders.
+     *
+     * @return HasMany<SubcontractorWorkOrder, $this>
+     */
+    public function subcontractorWorkOrders(): HasMany
+    {
+        return $this->hasMany(SubcontractorWorkOrder::class, 'subcontractor_id');
+    }
+
+    /**
+     * Get subcontractor invoices.
+     *
+     * @return HasMany<SubcontractorInvoice, $this>
+     */
+    public function subcontractorInvoices(): HasMany
+    {
+        return $this->hasMany(SubcontractorInvoice::class, 'subcontractor_id');
     }
 
     /**
@@ -240,7 +270,7 @@ class Contact extends Model
         };
 
         $lastContact = static::query()
-            ->where('code', 'like', $prefix . '%')
+            ->where('code', 'like', $prefix.'%')
             ->orderBy('code', 'desc')
             ->first();
 
@@ -251,6 +281,66 @@ class Contact extends Model
             $nextNumber = 1;
         }
 
-        return $prefix . str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Scope for subcontractors.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Contact>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Contact>
+     */
+    public function scopeSubcontractors($query)
+    {
+        return $query->where('is_subcontractor', true);
+    }
+
+    /**
+     * Check if contact is a subcontractor.
+     */
+    public function isSubcontractor(): bool
+    {
+        return $this->is_subcontractor === true;
+    }
+
+    /**
+     * Get subcontractor total work orders.
+     */
+    public function getSubcontractorTotalWorkOrders(): int
+    {
+        return $this->subcontractorWorkOrders()->count();
+    }
+
+    /**
+     * Get subcontractor active work orders.
+     */
+    public function getSubcontractorActiveWorkOrders(): int
+    {
+        return $this->subcontractorWorkOrders()
+            ->whereIn('status', [
+                SubcontractorWorkOrder::STATUS_ASSIGNED,
+                SubcontractorWorkOrder::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+    }
+
+    /**
+     * Get subcontractor completed work orders.
+     */
+    public function getSubcontractorCompletedWorkOrders(): int
+    {
+        return $this->subcontractorWorkOrders()
+            ->where('status', SubcontractorWorkOrder::STATUS_COMPLETED)
+            ->count();
+    }
+
+    /**
+     * Get subcontractor total revenue.
+     */
+    public function getSubcontractorTotalRevenue(): int
+    {
+        return (int) $this->subcontractorWorkOrders()
+            ->where('status', SubcontractorWorkOrder::STATUS_COMPLETED)
+            ->sum('actual_amount');
     }
 }

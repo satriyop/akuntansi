@@ -84,4 +84,36 @@ class ContactFactory extends Factory
             'npwp' => null,
         ]);
     }
+
+    /**
+     * Subcontractor type.
+     */
+    public function subcontractor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => Contact::TYPE_SUPPLIER,
+            'is_subcontractor' => true,
+            'subcontractor_services' => $this->faker->randomElements([
+                'instalasi_listrik',
+                'instalasi_panel',
+                'instalasi_solar',
+                'pekerjaan_sipil',
+                'commissioning',
+            ], $this->faker->numberBetween(1, 3)),
+            'hourly_rate' => $this->faker->randomElement([75000, 100000, 125000, 150000]),
+            'daily_rate' => $this->faker->randomElement([500000, 750000, 1000000, 1250000]),
+        ]);
+    }
+
+    /**
+     * With subcontractor rates.
+     */
+    public function withSubcontractorRates(int $hourlyRate, int $dailyRate): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_subcontractor' => true,
+            'hourly_rate' => $hourlyRate,
+            'daily_rate' => $dailyRate,
+        ]);
+    }
 }

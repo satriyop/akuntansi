@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\JournalEntryController;
 use App\Http\Controllers\Api\V1\MaterialRequisitionController;
+use App\Http\Controllers\Api\V1\MrpController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
@@ -28,6 +29,8 @@ use App\Http\Controllers\Api\V1\RecurringTemplateController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SalesReturnController;
+use App\Http\Controllers\Api\V1\SubcontractorInvoiceController;
+use App\Http\Controllers\Api\V1\SubcontractorWorkOrderController;
 use App\Http\Controllers\Api\V1\WarehouseController;
 use App\Http\Controllers\Api\V1\WorkOrderController;
 use Illuminate\Support\Facades\Route;
@@ -338,4 +341,41 @@ Route::prefix('v1')->group(function () {
     Route::get('permissions/grouped', [PermissionController::class, 'grouped']);
     Route::get('permissions/groups', [PermissionController::class, 'groups']);
     Route::get('permissions/{permission}', [PermissionController::class, 'show']);
+
+    // MRP (Material Requirements Planning)
+    Route::apiResource('mrp-runs', MrpController::class)->parameters(['mrp-runs' => 'mrpRun']);
+    Route::post('mrp-runs/{mrpRun}/execute', [MrpController::class, 'execute']);
+    Route::get('mrp-runs/{mrpRun}/demands', [MrpController::class, 'demands']);
+    Route::get('mrp-runs/{mrpRun}/suggestions', [MrpController::class, 'suggestions']);
+    Route::post('mrp-suggestions/{suggestion}/accept', [MrpController::class, 'acceptSuggestion']);
+    Route::post('mrp-suggestions/{suggestion}/reject', [MrpController::class, 'rejectSuggestion']);
+    Route::put('mrp-suggestions/{suggestion}', [MrpController::class, 'updateSuggestion']);
+    Route::post('mrp-suggestions/{suggestion}/convert-to-po', [MrpController::class, 'convertToPurchaseOrder']);
+    Route::post('mrp-suggestions/{suggestion}/convert-to-wo', [MrpController::class, 'convertToWorkOrder']);
+    Route::post('mrp-suggestions/{suggestion}/convert-to-sc-wo', [MrpController::class, 'convertToSubcontractorWorkOrder']);
+    Route::post('mrp-suggestions/bulk-accept', [MrpController::class, 'bulkAccept']);
+    Route::post('mrp-suggestions/bulk-reject', [MrpController::class, 'bulkReject']);
+    Route::get('mrp/shortage-report', [MrpController::class, 'shortageReport']);
+    Route::get('mrp/statistics', [MrpController::class, 'statistics']);
+
+    // Subcontractor Work Orders (Perintah Kerja Subkontraktor)
+    Route::apiResource('subcontractor-work-orders', SubcontractorWorkOrderController::class)
+        ->parameters(['subcontractor-work-orders' => 'subcontractorWorkOrder']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/assign', [SubcontractorWorkOrderController::class, 'assign']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/start', [SubcontractorWorkOrderController::class, 'start']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/update-progress', [SubcontractorWorkOrderController::class, 'updateProgress']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/complete', [SubcontractorWorkOrderController::class, 'complete']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/cancel', [SubcontractorWorkOrderController::class, 'cancel']);
+    Route::post('subcontractor-work-orders/{subcontractorWorkOrder}/invoices', [SubcontractorWorkOrderController::class, 'createInvoice']);
+    Route::get('subcontractor-work-orders/{subcontractorWorkOrder}/invoices', [SubcontractorWorkOrderController::class, 'invoices']);
+    Route::get('subcontractors', [SubcontractorWorkOrderController::class, 'subcontractors']);
+    Route::get('subcontractor-work-orders-statistics', [SubcontractorWorkOrderController::class, 'statistics']);
+
+    // Subcontractor Invoices (Invoice Subkontraktor)
+    Route::get('subcontractor-invoices', [SubcontractorInvoiceController::class, 'index']);
+    Route::get('subcontractor-invoices/{subcontractorInvoice}', [SubcontractorInvoiceController::class, 'show']);
+    Route::put('subcontractor-invoices/{subcontractorInvoice}', [SubcontractorInvoiceController::class, 'update']);
+    Route::post('subcontractor-invoices/{subcontractorInvoice}/approve', [SubcontractorInvoiceController::class, 'approve']);
+    Route::post('subcontractor-invoices/{subcontractorInvoice}/reject', [SubcontractorInvoiceController::class, 'reject']);
+    Route::post('subcontractor-invoices/{subcontractorInvoice}/convert-to-bill', [SubcontractorInvoiceController::class, 'convertToBill']);
 });

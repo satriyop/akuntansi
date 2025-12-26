@@ -16,6 +16,20 @@ class Product extends Model
 
     public const TYPE_SERVICE = 'service';
 
+    // Procurement types for MRP
+    public const PROCUREMENT_BUY = 'buy';
+
+    public const PROCUREMENT_MAKE = 'make';
+
+    public const PROCUREMENT_SUBCONTRACT = 'subcontract';
+
+    // ABC Classification
+    public const ABC_CLASS_A = 'A';
+
+    public const ABC_CLASS_B = 'B';
+
+    public const ABC_CLASS_C = 'C';
+
     protected $fillable = [
         'sku',
         'name',
@@ -40,6 +54,16 @@ class Product extends Model
         'barcode',
         'brand',
         'custom_fields',
+        // MRP fields
+        'reorder_point',
+        'safety_stock',
+        'lead_time_days',
+        'min_order_qty',
+        'order_multiple',
+        'max_stock',
+        'default_supplier_id',
+        'abc_class',
+        'procurement_type',
     ];
 
     protected function casts(): array
@@ -56,6 +80,13 @@ class Product extends Model
             'is_purchasable' => 'boolean',
             'is_sellable' => 'boolean',
             'custom_fields' => 'array',
+            // MRP fields
+            'reorder_point' => 'integer',
+            'safety_stock' => 'integer',
+            'lead_time_days' => 'integer',
+            'min_order_qty' => 'decimal:4',
+            'order_multiple' => 'decimal:4',
+            'max_stock' => 'integer',
         ];
     }
 
@@ -147,6 +178,56 @@ class Product extends Model
     public function inventoryMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    /**
+     * Get default supplier.
+     *
+     * @return BelongsTo<Contact, $this>
+     */
+    public function defaultSupplier(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'default_supplier_id');
+    }
+
+    /**
+     * Get BOMs where this product is the output.
+     *
+     * @return HasMany<Bom, $this>
+     */
+    public function boms(): HasMany
+    {
+        return $this->hasMany(Bom::class);
+    }
+
+    /**
+     * Get BOM items where this product is a component.
+     *
+     * @return HasMany<BomItem, $this>
+     */
+    public function bomItems(): HasMany
+    {
+        return $this->hasMany(BomItem::class);
+    }
+
+    /**
+     * Get work orders for this product.
+     *
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
+     * Get purchase order items for this product.
+     *
+     * @return HasMany<PurchaseOrderItem, $this>
+     */
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
     }
 
     /**
@@ -371,5 +452,182 @@ class Product extends Model
     public function scopeWithInventory($query)
     {
         return $query->where('track_inventory', true);
+    }
+
+    /**
+     * Scope for buy items.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Product>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Product>
+     */
+    public function scopeBuyItems($query)
+    {
+        return $query->where('procurement_type', self::PROCUREMENT_BUY);
+    }
+
+    /**
+     * Scope for make items.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Product>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Product>
+     */
+    public function scopeMakeItems($query)
+    {
+        return $query->where('procurement_type', self::PROCUREMENT_MAKE);
+    }
+
+    /**
+     * Scope for subcontract items.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Product>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Product>
+     */
+    public function scopeSubcontractItems($query)
+    {
+        return $query->where('procurement_type', self::PROCUREMENT_SUBCONTRACT);
+    }
+
+    /**
+     * Scope for products at or below reorder point.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Product>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Product>
+     */
+    public function scopeNeedsReorder($query)
+    {
+        return $query->where('track_inventory', true)
+            ->where('reorder_point', '>', 0)
+            ->whereColumn('current_stock', '<=', 'reorder_point');
+    }
+
+    /**
+     * Check if product is a buy item.
+     */
+    public function isBuyItem(): bool
+    {
+        return $this->procurement_type === self::PROCUREMENT_BUY;
+    }
+
+    /**
+     * Check if product is a make item.
+     */
+    public function isMakeItem(): bool
+    {
+        return $this->procurement_type === self::PROCUREMENT_MAKE;
+    }
+
+    /**
+     * Check if product is a subcontract item.
+     */
+    public function isSubcontractItem(): bool
+    {
+        return $this->procurement_type === self::PROCUREMENT_SUBCONTRACT;
+    }
+
+    /**
+     * Check if stock is at or below reorder point.
+     */
+    public function needsReorder(): bool
+    {
+        if (! $this->track_inventory || $this->reorder_point <= 0) {
+            return false;
+        }
+
+        return $this->current_stock <= $this->reorder_point;
+    }
+
+    /**
+     * Get available stock (on hand - reserved).
+     */
+    public function getAvailableStock(?Warehouse $warehouse = null): int
+    {
+        $query = $this->stocks();
+
+        if ($warehouse) {
+            $query->where('warehouse_id', $warehouse->id);
+        }
+
+        $onHand = (int) $query->sum('quantity');
+        $reserved = (int) $query->sum('reserved_quantity');
+
+        return max(0, $onHand - $reserved);
+    }
+
+    /**
+     * Get pending supply from open POs.
+     */
+    public function getPendingSupply(): float
+    {
+        return (float) $this->purchaseOrderItems()
+            ->whereHas('purchaseOrder', function ($q) {
+                $q->whereIn('status', [
+                    PurchaseOrder::STATUS_APPROVED,
+                    PurchaseOrder::STATUS_PARTIAL,
+                ]);
+            })
+            ->selectRaw('SUM(quantity - quantity_received) as pending')
+            ->value('pending') ?? 0;
+    }
+
+    /**
+     * Get active BOM for manufacturing.
+     */
+    public function getActiveBom(): ?Bom
+    {
+        return $this->boms()
+            ->where('status', Bom::STATUS_ACTIVE)
+            ->orderByDesc('version')
+            ->first();
+    }
+
+    /**
+     * Round quantity to order multiple.
+     */
+    public function roundToOrderMultiple(float $quantity): float
+    {
+        $multiple = (float) ($this->order_multiple ?? 1);
+        if ($multiple <= 0) {
+            $multiple = 1;
+        }
+
+        return ceil($quantity / $multiple) * $multiple;
+    }
+
+    /**
+     * Ensure minimum order quantity.
+     */
+    public function ensureMinOrderQty(float $quantity): float
+    {
+        $moq = (float) ($this->min_order_qty ?? 1);
+
+        return max($quantity, $moq);
+    }
+
+    /**
+     * Get procurement types.
+     *
+     * @return array<string, string>
+     */
+    public static function getProcurementTypes(): array
+    {
+        return [
+            self::PROCUREMENT_BUY => 'Beli',
+            self::PROCUREMENT_MAKE => 'Produksi',
+            self::PROCUREMENT_SUBCONTRACT => 'Subkontrak',
+        ];
+    }
+
+    /**
+     * Get ABC classes.
+     *
+     * @return array<string, string>
+     */
+    public static function getAbcClasses(): array
+    {
+        return [
+            self::ABC_CLASS_A => 'A - Prioritas Tinggi',
+            self::ABC_CLASS_B => 'B - Prioritas Sedang',
+            self::ABC_CLASS_C => 'C - Prioritas Rendah',
+        ];
     }
 }
