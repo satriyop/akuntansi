@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\FiscalPeriodController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\JournalEntryController;
+use App\Http\Controllers\Api\V1\MaterialRequisitionController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SalesReturnController;
 use App\Http\Controllers\Api\V1\WarehouseController;
+use App\Http\Controllers\Api\V1\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -194,6 +196,32 @@ Route::prefix('v1')->group(function () {
     Route::delete('projects/{project}/revenues/{revenue}', [ProjectController::class, 'deleteRevenue']);
     Route::get('projects/{project}/summary', [ProjectController::class, 'summary']);
     Route::get('projects-statistics', [ProjectController::class, 'statistics']);
+
+    // Work Orders (Perintah Kerja)
+    Route::apiResource('work-orders', WorkOrderController::class);
+    Route::post('projects/{project}/work-orders', [WorkOrderController::class, 'createForProject']);
+    Route::post('boms/{bom}/create-work-order', [WorkOrderController::class, 'createFromBom']);
+    Route::get('work-orders/{work_order}/sub-work-orders', [WorkOrderController::class, 'subWorkOrders']);
+    Route::post('work-orders/{work_order}/sub-work-orders', [WorkOrderController::class, 'createSubWorkOrder']);
+    Route::post('work-orders/{work_order}/confirm', [WorkOrderController::class, 'confirm']);
+    Route::post('work-orders/{work_order}/start', [WorkOrderController::class, 'start']);
+    Route::post('work-orders/{work_order}/complete', [WorkOrderController::class, 'complete']);
+    Route::post('work-orders/{work_order}/cancel', [WorkOrderController::class, 'cancel']);
+    Route::post('work-orders/{work_order}/record-output', [WorkOrderController::class, 'recordOutput']);
+    Route::post('work-orders/{work_order}/record-consumption', [WorkOrderController::class, 'recordConsumption']);
+    Route::get('work-orders/{work_order}/cost-summary', [WorkOrderController::class, 'costSummary']);
+    Route::get('work-orders/{work_order}/material-status', [WorkOrderController::class, 'materialStatus']);
+    Route::get('work-orders-statistics', [WorkOrderController::class, 'statistics']);
+
+    // Material Requisitions (Permintaan Material)
+    Route::get('material-requisitions', [MaterialRequisitionController::class, 'index']);
+    Route::post('work-orders/{work_order}/material-requisitions', [MaterialRequisitionController::class, 'createForWorkOrder']);
+    Route::get('material-requisitions/{material_requisition}', [MaterialRequisitionController::class, 'show']);
+    Route::put('material-requisitions/{material_requisition}', [MaterialRequisitionController::class, 'update']);
+    Route::delete('material-requisitions/{material_requisition}', [MaterialRequisitionController::class, 'destroy']);
+    Route::post('material-requisitions/{material_requisition}/approve', [MaterialRequisitionController::class, 'approve']);
+    Route::post('material-requisitions/{material_requisition}/issue', [MaterialRequisitionController::class, 'issue']);
+    Route::post('material-requisitions/{material_requisition}/cancel', [MaterialRequisitionController::class, 'cancel']);
 
     // Payments (Pembayaran)
     Route::get('payments', [PaymentController::class, 'index']);

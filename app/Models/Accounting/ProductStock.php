@@ -14,6 +14,7 @@ class ProductStock extends Model
         'product_id',
         'warehouse_id',
         'quantity',
+        'reserved_quantity',
         'average_cost',
         'total_value',
     ];
@@ -22,9 +23,18 @@ class ProductStock extends Model
     {
         return [
             'quantity' => 'integer',
+            'reserved_quantity' => 'integer',
             'average_cost' => 'integer',
             'total_value' => 'integer',
         ];
+    }
+
+    /**
+     * Get available quantity (total - reserved).
+     */
+    public function getAvailableQuantity(): int
+    {
+        return max(0, $this->quantity - ($this->reserved_quantity ?? 0));
     }
 
     /**
