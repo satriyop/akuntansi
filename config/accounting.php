@@ -145,11 +145,37 @@ return [
     |
     */
     'document_formats' => [
+        'quotation' => 'QUO-{YEAR}{MONTH}-{SEQ}',
         'invoice' => 'INV-{YEAR}{MONTH}-{SEQ}',
         'bill' => 'BILL-{YEAR}{MONTH}-{SEQ}',
         'payment_receive' => 'RCV-{YEAR}{MONTH}-{SEQ}',
         'payment_send' => 'PAY-{YEAR}{MONTH}-{SEQ}',
         'journal_entry' => 'JE-{YEAR}{MONTH}-{SEQ}',
+        'purchase_order' => 'PO-{YEAR}{MONTH}-{SEQ}',
+        'delivery_order' => 'DO-{YEAR}{MONTH}-{SEQ}',
+        'down_payment' => 'DP-{YEAR}{MONTH}-{SEQ}',
+        'sales_return' => 'SR-{YEAR}{MONTH}-{SEQ}',
+        'purchase_return' => 'PR-{YEAR}{MONTH}-{SEQ}',
+        'credit_note' => 'CN-{YEAR}{MONTH}-{SEQ}',
+        'debit_note' => 'DN-{YEAR}{MONTH}-{SEQ}',
+        'project' => 'PRJ-{YEAR}{MONTH}-{SEQ}',
+        'bom' => 'BOM-{SEQ}',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Quotation Settings (Penawaran)
+    |--------------------------------------------------------------------------
+    |
+    | Settings for quotation/penawaran documents.
+    |
+    */
+    'quotation' => [
+        'default_validity_days' => 30,
+        'terms_conditions' => [
+            'id' => "SYARAT DAN KETENTUAN:\n1. Harga berlaku selama masa penawaran.\n2. Pembayaran: 50% DP, 50% sebelum pengiriman.\n3. Waktu pengerjaan dihitung setelah DP diterima.\n4. Harga belum termasuk PPN 11%.\n5. Penawaran ini berlaku selama {validity_days} hari.",
+            'en' => "TERMS AND CONDITIONS:\n1. Prices are valid during the quotation period.\n2. Payment: 50% down payment, 50% before delivery.\n3. Lead time starts after down payment is received.\n4. Prices exclude 11% VAT.\n5. This quotation is valid for {validity_days} days.",
+        ],
     ],
 
     /*

@@ -15,7 +15,7 @@ class ContactFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => 'C-' . $this->faker->unique()->numerify('####'),
+            'code' => 'C-'.$this->faker->unique()->numerify('####'),
             'name' => $this->faker->company(),
             'type' => Contact::TYPE_CUSTOMER,
             'email' => $this->faker->unique()->companyEmail(),
@@ -44,6 +44,14 @@ class ContactFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'type' => Contact::TYPE_SUPPLIER,
         ]);
+    }
+
+    /**
+     * Alias for supplier.
+     */
+    public function vendor(): static
+    {
+        return $this->supplier();
     }
 
     public function both(): static

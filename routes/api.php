@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\BillController;
 use App\Http\Controllers\Api\V1\BudgetController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DeliveryOrderController;
+use App\Http\Controllers\Api\V1\DownPaymentController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FiscalPeriodController;
 use App\Http\Controllers\Api\V1\InventoryController;
@@ -16,6 +18,8 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PurchaseOrderController;
+use App\Http\Controllers\Api\V1\QuotationController;
 use App\Http\Controllers\Api\V1\RecurringTemplateController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -82,15 +86,61 @@ Route::prefix('v1')->group(function () {
     Route::post('journal-entries/{journal_entry}/post', [JournalEntryController::class, 'post']);
     Route::post('journal-entries/{journal_entry}/reverse', [JournalEntryController::class, 'reverse']);
 
+    // Quotations (Penawaran)
+    Route::apiResource('quotations', QuotationController::class);
+    Route::post('quotations/{quotation}/submit', [QuotationController::class, 'submit']);
+    Route::post('quotations/{quotation}/approve', [QuotationController::class, 'approve']);
+    Route::post('quotations/{quotation}/reject', [QuotationController::class, 'reject']);
+    Route::post('quotations/{quotation}/revise', [QuotationController::class, 'revise']);
+    Route::post('quotations/{quotation}/convert-to-invoice', [QuotationController::class, 'convertToInvoice']);
+    Route::post('quotations/{quotation}/duplicate', [QuotationController::class, 'duplicate']);
+    Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf']);
+    Route::get('quotations-statistics', [QuotationController::class, 'statistics']);
+
     // Invoices - Sales (Faktur Penjualan)
     Route::apiResource('invoices', InvoiceController::class);
     Route::post('invoices/{invoice}/post', [InvoiceController::class, 'post']);
     Route::post('invoices/{invoice}/make-recurring', [InvoiceController::class, 'makeRecurring']);
 
+    // Purchase Orders (Pesanan Pembelian)
+    Route::apiResource('purchase-orders', PurchaseOrderController::class);
+    Route::post('purchase-orders/{purchase_order}/submit', [PurchaseOrderController::class, 'submit']);
+    Route::post('purchase-orders/{purchase_order}/approve', [PurchaseOrderController::class, 'approve']);
+    Route::post('purchase-orders/{purchase_order}/reject', [PurchaseOrderController::class, 'reject']);
+    Route::post('purchase-orders/{purchase_order}/cancel', [PurchaseOrderController::class, 'cancel']);
+    Route::post('purchase-orders/{purchase_order}/receive', [PurchaseOrderController::class, 'receive']);
+    Route::post('purchase-orders/{purchase_order}/convert-to-bill', [PurchaseOrderController::class, 'convertToBill']);
+    Route::post('purchase-orders/{purchase_order}/duplicate', [PurchaseOrderController::class, 'duplicate']);
+    Route::get('purchase-orders-outstanding', [PurchaseOrderController::class, 'outstanding']);
+    Route::get('purchase-orders-statistics', [PurchaseOrderController::class, 'statistics']);
+
     // Bills - Purchases (Faktur Pembelian)
     Route::apiResource('bills', BillController::class);
     Route::post('bills/{bill}/post', [BillController::class, 'post']);
     Route::post('bills/{bill}/make-recurring', [BillController::class, 'makeRecurring']);
+
+    // Down Payments (Uang Muka)
+    Route::apiResource('down-payments', DownPaymentController::class);
+    Route::post('down-payments/{down_payment}/apply-to-invoice/{invoice}', [DownPaymentController::class, 'applyToInvoice']);
+    Route::post('down-payments/{down_payment}/apply-to-bill/{bill}', [DownPaymentController::class, 'applyToBill']);
+    Route::delete('down-payments/{down_payment}/applications/{application}', [DownPaymentController::class, 'unapply']);
+    Route::post('down-payments/{down_payment}/refund', [DownPaymentController::class, 'refund']);
+    Route::post('down-payments/{down_payment}/cancel', [DownPaymentController::class, 'cancel']);
+    Route::get('down-payments/{down_payment}/applications', [DownPaymentController::class, 'applications']);
+    Route::get('down-payments-available', [DownPaymentController::class, 'available']);
+    Route::get('down-payments-statistics', [DownPaymentController::class, 'statistics']);
+
+    // Delivery Orders (Surat Jalan)
+    Route::apiResource('delivery-orders', DeliveryOrderController::class);
+    Route::post('delivery-orders/{delivery_order}/confirm', [DeliveryOrderController::class, 'confirm']);
+    Route::post('delivery-orders/{delivery_order}/ship', [DeliveryOrderController::class, 'ship']);
+    Route::post('delivery-orders/{delivery_order}/deliver', [DeliveryOrderController::class, 'deliver']);
+    Route::post('delivery-orders/{delivery_order}/cancel', [DeliveryOrderController::class, 'cancel']);
+    Route::post('delivery-orders/{delivery_order}/update-progress', [DeliveryOrderController::class, 'updateProgress']);
+    Route::post('delivery-orders/{delivery_order}/duplicate', [DeliveryOrderController::class, 'duplicate']);
+    Route::post('invoices/{invoice}/create-delivery-order', [DeliveryOrderController::class, 'createFromInvoice']);
+    Route::get('invoices/{invoice}/delivery-orders', [DeliveryOrderController::class, 'forInvoice']);
+    Route::get('delivery-orders-statistics', [DeliveryOrderController::class, 'statistics']);
 
     // Payments (Pembayaran)
     Route::get('payments', [PaymentController::class, 'index']);
