@@ -5,11 +5,16 @@ use App\Models\Accounting\Contact;
 use App\Models\Accounting\Product;
 use App\Models\Accounting\PurchaseOrder;
 use App\Models\Accounting\PurchaseOrderItem;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
 });

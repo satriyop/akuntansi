@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Accounting\Role;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -12,7 +16,7 @@
 */
 
 pest()->extend(Tests\TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -41,7 +45,31 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Create and authenticate an admin user for API tests.
+ */
+function authenticatedAdmin(): User
 {
-    // ..
+    $user = User::factory()->create();
+
+    $role = Role::firstOrCreate(
+        ['name' => Role::ADMIN],
+        ['display_name' => 'Administrator', 'description' => 'Full system access', 'is_system' => true]
+    );
+    $user->roles()->attach($role);
+
+    Sanctum::actingAs($user);
+
+    return $user;
+}
+
+/**
+ * Create and authenticate a regular user for API tests.
+ */
+function authenticatedUser(): User
+{
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    return $user;
 }

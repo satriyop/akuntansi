@@ -38,6 +38,12 @@ class QuotationItemResource extends JsonResource
             'line_total' => $this->line_total,
             'sort_order' => $this->sort_order,
             'notes' => $this->notes,
+            'revenue_account_id' => $this->revenue_account_id,
+            'revenue_account' => $this->whenLoaded('revenueAccount', fn () => [
+                'id' => $this->revenueAccount->id,
+                'code' => $this->revenueAccount->code,
+                'name' => $this->revenueAccount->name,
+            ]),
 
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),

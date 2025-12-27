@@ -1,20 +1,25 @@
 <?php
 
-use App\Models\Accounting\Account;
 use App\Models\Accounting\Contact;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\InvoiceItem;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
+
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 });
 
 describe('Invoice API', function () {
-    
+
     it('can list all invoices', function () {
         Invoice::factory()->count(3)->create();
 
@@ -74,7 +79,7 @@ describe('Invoice API', function () {
         $response->assertCreated()
             ->assertJsonPath('data.status', 'draft')
             ->assertJsonCount(2, 'data.items');
-        
+
         // Verify calculations: 5,000,000 + 250,000 = 5,250,000 subtotal
         // Tax: 5,250,000 * 11% = 577,500
         // Total: 5,827,500
@@ -186,7 +191,7 @@ describe('Invoice API', function () {
             'total_amount' => 1110000,
         ]);
         InvoiceItem::factory()->forInvoice($invoice)->create([
-            'amount' => 1000000,
+            'line_total' => 1000000,
         ]);
 
         $response = $this->postJson("/api/v1/invoices/{$invoice->id}/post");
@@ -194,7 +199,7 @@ describe('Invoice API', function () {
         $response->assertOk()
             ->assertJsonPath('data.status', 'sent')
             ->assertJsonStructure(['data' => ['journal_entry']]);
-        
+
         // Verify journal entry was created
         $this->assertNotNull($response->json('data.journal_entry_id'));
     });

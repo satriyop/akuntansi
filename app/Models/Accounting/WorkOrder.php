@@ -49,6 +49,7 @@ class WorkOrder extends Model
         'quantity_scrapped',
         'status',
         'priority',
+        'progress_percentage',
         'planned_start_date',
         'planned_end_date',
         'actual_start_date',
@@ -82,6 +83,7 @@ class WorkOrder extends Model
             'quantity_ordered' => 'decimal:4',
             'quantity_completed' => 'decimal:4',
             'quantity_scrapped' => 'decimal:4',
+            'progress_percentage' => 'integer',
             'planned_start_date' => 'date',
             'planned_end_date' => 'date',
             'actual_start_date' => 'date',
@@ -348,6 +350,14 @@ class WorkOrder extends Model
         }
 
         return round(((float) $this->quantity_completed / (float) $this->quantity_ordered) * 100, 2);
+    }
+
+    /**
+     * Update cached progress percentage.
+     */
+    public function updateProgressPercentage(): void
+    {
+        $this->progress_percentage = (int) min(100, $this->getCompletionPercentage());
     }
 
     /**

@@ -30,7 +30,7 @@ class JournalService
         return DB::transaction(function () use ($data, $autoPost) {
             // Find or create fiscal period
             $fiscalPeriod = FiscalPeriod::current();
-            
+
             $entry = JournalEntry::create([
                 'entry_number' => JournalEntry::generateEntryNumber(),
                 'entry_date' => $data['entry_date'],
@@ -70,9 +70,9 @@ class JournalService
             throw new \InvalidArgumentException('Journal entry is already posted.');
         }
 
-        if (!$entry->isBalanced()) {
+        if (! $entry->isBalanced()) {
             throw new \InvalidArgumentException(
-                'Journal entry is not balanced. Debit: ' . $entry->getTotalDebit() . ', Credit: ' . $entry->getTotalCredit()
+                'Journal entry is not balanced. Debit: '.$entry->getTotalDebit().', Credit: '.$entry->getTotalCredit()
             );
         }
 
@@ -95,7 +95,7 @@ class JournalService
      */
     public function reverseEntry(JournalEntry $entry, ?string $description = null): JournalEntry
     {
-        if (!$entry->is_posted) {
+        if (! $entry->is_posted) {
             throw new \InvalidArgumentException('Cannot reverse an unposted journal entry.');
         }
 
@@ -117,7 +117,7 @@ class JournalService
 
             $reversalEntry = $this->createEntry([
                 'entry_date' => now()->toDateString(),
-                'description' => $description ?? 'Reversal of ' . $entry->entry_number,
+                'description' => $description ?? 'Reversal of '.$entry->entry_number,
                 'reference' => $entry->entry_number,
                 'source_type' => $entry->source_type,
                 'source_id' => $entry->source_id,
@@ -146,7 +146,7 @@ class JournalService
 
         $receivableAccount = $invoice->receivableAccount
             ?? Account::where('code', '1-1100')->first(); // Piutang Usaha
-        
+
         $taxPayableAccount = Account::where('code', '2-1200')->first(); // PPN Keluaran
         $defaultRevenueAccount = Account::where('code', '4-1001')->first(); // Pendapatan Penjualan
 
@@ -155,7 +155,7 @@ class JournalService
         // Debit: Accounts Receivable (total amount including tax)
         $lines[] = [
             'account_id' => $receivableAccount->id,
-            'description' => 'Piutang ' . $invoice->contact->name,
+            'description' => 'Piutang '.$invoice->contact->name,
             'debit' => $invoice->total_amount,
             'credit' => 0,
         ];
@@ -164,16 +164,16 @@ class JournalService
         $revenueByAccount = [];
         foreach ($invoice->items as $item) {
             $accountId = $item->revenue_account_id ?? $defaultRevenueAccount->id;
-            if (!isset($revenueByAccount[$accountId])) {
+            if (! isset($revenueByAccount[$accountId])) {
                 $revenueByAccount[$accountId] = 0;
             }
-            $revenueByAccount[$accountId] += $item->amount;
+            $revenueByAccount[$accountId] += $item->line_total;
         }
 
         foreach ($revenueByAccount as $accountId => $amount) {
             $lines[] = [
                 'account_id' => $accountId,
-                'description' => 'Pendapatan ' . $invoice->invoice_number,
+                'description' => 'Pendapatan '.$invoice->invoice_number,
                 'debit' => 0,
                 'credit' => $amount,
             ];
@@ -183,7 +183,7 @@ class JournalService
         if ($invoice->tax_amount > 0 && $taxPayableAccount) {
             $lines[] = [
                 'account_id' => $taxPayableAccount->id,
-                'description' => 'PPN Keluaran ' . $invoice->invoice_number,
+                'description' => 'PPN Keluaran '.$invoice->invoice_number,
                 'debit' => 0,
                 'credit' => $invoice->tax_amount,
             ];
@@ -191,7 +191,7 @@ class JournalService
 
         $entry = $this->createEntry([
             'entry_date' => $invoice->invoice_date->toDateString(),
-            'description' => 'Faktur penjualan: ' . $invoice->invoice_number,
+            'description' => 'Faktur penjualan: '.$invoice->invoice_number,
             'reference' => $invoice->invoice_number,
             'source_type' => JournalEntry::SOURCE_INVOICE,
             'source_id' => $invoice->id,
@@ -218,7 +218,7 @@ class JournalService
 
         $payableAccount = $bill->payableAccount
             ?? Account::where('code', '2-1100')->first(); // Utang Usaha
-        
+
         $taxReceivableAccount = Account::where('code', '1-1300')->first(); // PPN Masukan
         $defaultExpenseAccount = Account::where('code', '5-1002')->first(); // Pembelian
 
@@ -228,16 +228,16 @@ class JournalService
         $expenseByAccount = [];
         foreach ($bill->items as $item) {
             $accountId = $item->expense_account_id ?? $defaultExpenseAccount->id;
-            if (!isset($expenseByAccount[$accountId])) {
+            if (! isset($expenseByAccount[$accountId])) {
                 $expenseByAccount[$accountId] = 0;
             }
-            $expenseByAccount[$accountId] += $item->amount;
+            $expenseByAccount[$accountId] += $item->line_total;
         }
 
         foreach ($expenseByAccount as $accountId => $amount) {
             $lines[] = [
                 'account_id' => $accountId,
-                'description' => 'Pembelian ' . $bill->bill_number,
+                'description' => 'Pembelian '.$bill->bill_number,
                 'debit' => $amount,
                 'credit' => 0,
             ];
@@ -247,7 +247,7 @@ class JournalService
         if ($bill->tax_amount > 0 && $taxReceivableAccount) {
             $lines[] = [
                 'account_id' => $taxReceivableAccount->id,
-                'description' => 'PPN Masukan ' . $bill->bill_number,
+                'description' => 'PPN Masukan '.$bill->bill_number,
                 'debit' => $bill->tax_amount,
                 'credit' => 0,
             ];
@@ -256,14 +256,14 @@ class JournalService
         // Credit: Accounts Payable (total amount)
         $lines[] = [
             'account_id' => $payableAccount->id,
-            'description' => 'Utang ' . $bill->contact->name,
+            'description' => 'Utang '.$bill->contact->name,
             'debit' => 0,
             'credit' => $bill->total_amount,
         ];
 
         $entry = $this->createEntry([
             'entry_date' => $bill->bill_date->toDateString(),
-            'description' => 'Faktur pembelian: ' . $bill->bill_number,
+            'description' => 'Faktur pembelian: '.$bill->bill_number,
             'reference' => $bill->bill_number,
             'source_type' => JournalEntry::SOURCE_BILL,
             'source_id' => $bill->id,
@@ -302,7 +302,7 @@ class JournalService
             // Debit: Cash/Bank
             $lines[] = [
                 'account_id' => $payment->cash_account_id,
-                'description' => 'Penerimaan dari ' . $payment->contact->name,
+                'description' => 'Penerimaan dari '.$payment->contact->name,
                 'debit' => $payment->amount,
                 'credit' => 0,
             ];
@@ -310,7 +310,7 @@ class JournalService
             // Credit: Accounts Receivable
             $lines[] = [
                 'account_id' => $receivableAccount->id,
-                'description' => 'Pelunasan piutang ' . $payment->contact->name,
+                'description' => 'Pelunasan piutang '.$payment->contact->name,
                 'debit' => 0,
                 'credit' => $payment->amount,
             ];
@@ -326,7 +326,7 @@ class JournalService
             // Debit: Accounts Payable
             $lines[] = [
                 'account_id' => $payableAccount->id,
-                'description' => 'Pembayaran utang ' . $payment->contact->name,
+                'description' => 'Pembayaran utang '.$payment->contact->name,
                 'debit' => $payment->amount,
                 'credit' => 0,
             ];
@@ -334,7 +334,7 @@ class JournalService
             // Credit: Cash/Bank
             $lines[] = [
                 'account_id' => $payment->cash_account_id,
-                'description' => 'Pembayaran ke ' . $payment->contact->name,
+                'description' => 'Pembayaran ke '.$payment->contact->name,
                 'debit' => 0,
                 'credit' => $payment->amount,
             ];
@@ -342,7 +342,7 @@ class JournalService
 
         $entry = $this->createEntry([
             'entry_date' => $payment->payment_date->toDateString(),
-            'description' => ($payment->type === Payment::TYPE_RECEIVE ? 'Penerimaan: ' : 'Pembayaran: ') . $payment->payment_number,
+            'description' => ($payment->type === Payment::TYPE_RECEIVE ? 'Penerimaan: ' : 'Pembayaran: ').$payment->payment_number,
             'reference' => $payment->payment_number,
             'source_type' => JournalEntry::SOURCE_PAYMENT,
             'source_id' => $payment->id,
@@ -374,7 +374,7 @@ class JournalService
         DB::transaction(function () use ($payment) {
             // Reverse the journal entry
             if ($payment->journalEntry) {
-                $this->reverseEntry($payment->journalEntry, 'Pembatalan: ' . $payment->payment_number);
+                $this->reverseEntry($payment->journalEntry, 'Pembatalan: '.$payment->payment_number);
             }
 
             // Revert the paid amount on invoice/bill

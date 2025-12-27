@@ -1,9 +1,17 @@
 <?php
 
 use App\Models\Accounting\Permission;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+});
 
 describe('Permission API', function () {
 

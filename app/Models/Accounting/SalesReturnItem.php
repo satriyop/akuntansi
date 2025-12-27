@@ -24,7 +24,12 @@ class SalesReturnItem extends Model
         'quantity',
         'unit',
         'unit_price',
-        'amount',
+        'discount_percent',
+        'discount_amount',
+        'tax_rate',
+        'tax_amount',
+        'line_total',
+        'sort_order',
         'condition',
         'notes',
     ];
@@ -34,7 +39,12 @@ class SalesReturnItem extends Model
         return [
             'quantity' => 'decimal:4',
             'unit_price' => 'integer',
-            'amount' => 'integer',
+            'discount_percent' => 'decimal:2',
+            'discount_amount' => 'integer',
+            'tax_rate' => 'decimal:2',
+            'tax_amount' => 'integer',
+            'line_total' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -73,15 +83,27 @@ class SalesReturnItem extends Model
         $this->quantity = $invoiceItem->quantity;
         $this->unit = $invoiceItem->unit;
         $this->unit_price = $invoiceItem->unit_price;
-        $this->amount = $invoiceItem->amount;
+        $this->discount_percent = $invoiceItem->discount_percent;
+        $this->discount_amount = $invoiceItem->discount_amount;
+        $this->tax_rate = $invoiceItem->tax_rate;
+        $this->tax_amount = $invoiceItem->tax_amount;
+        $this->line_total = $invoiceItem->line_total;
+        $this->sort_order = $invoiceItem->sort_order;
     }
 
     /**
-     * Calculate amount from quantity and unit price.
+     * Calculate and set the line total.
      */
-    public function calculateAmount(): void
+    public function calculateLineTotal(): void
     {
-        $this->amount = (int) round((float) $this->quantity * $this->unit_price);
+        $subtotal = (int) round($this->quantity * $this->unit_price);
+        $discountAmount = $this->discount_amount ?: (int) round($subtotal * ($this->discount_percent ?? 0) / 100);
+        $afterDiscount = $subtotal - $discountAmount;
+        $taxAmount = $this->tax_amount ?: (int) round($afterDiscount * ($this->tax_rate ?? 0) / 100);
+
+        $this->discount_amount = $discountAmount;
+        $this->tax_amount = $taxAmount;
+        $this->line_total = $afterDiscount + $taxAmount;
     }
 
     /**

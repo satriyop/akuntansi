@@ -3,11 +3,16 @@
 use App\Models\Accounting\Bill;
 use App\Models\Accounting\Contact;
 use App\Models\Accounting\Invoice;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
 });
@@ -60,7 +65,7 @@ describe('Tax Report API (PPN)', function () {
             'tax_amount' => 1100000,
         ]);
 
-        $response = $this->getJson('/api/v1/reports/ppn-monthly?year=' . now()->year);
+        $response = $this->getJson('/api/v1/reports/ppn-monthly?year='.now()->year);
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -117,7 +122,7 @@ describe('Tax Report API (PPN)', function () {
             'tax_amount' => 220000,
         ]);
 
-        $response = $this->getJson('/api/v1/reports/ppn-summary?start_date=' . now()->startOfMonth()->toDateString() . '&end_date=' . now()->endOfMonth()->toDateString());
+        $response = $this->getJson('/api/v1/reports/ppn-summary?start_date='.now()->startOfMonth()->toDateString().'&end_date='.now()->endOfMonth()->toDateString());
 
         $response->assertOk()
             ->assertJsonPath('output_tax.tax', 110000);

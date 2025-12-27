@@ -8,11 +8,16 @@ use App\Models\Accounting\Project;
 use App\Models\Accounting\Warehouse;
 use App\Models\Accounting\WorkOrder;
 use App\Models\Accounting\WorkOrderItem;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
 });

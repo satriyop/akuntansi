@@ -40,6 +40,12 @@ class PurchaseOrderItemResource extends JsonResource
             'line_total' => $this->line_total,
             'sort_order' => $this->sort_order,
             'notes' => $this->notes,
+            'expense_account_id' => $this->expense_account_id,
+            'expense_account' => $this->whenLoaded('expenseAccount', fn () => [
+                'id' => $this->expenseAccount->id,
+                'code' => $this->expenseAccount->code,
+                'name' => $this->expenseAccount->name,
+            ]),
 
             // Receiving info
             'is_fully_received' => $this->isFullyReceived(),

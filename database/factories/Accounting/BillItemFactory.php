@@ -18,7 +18,7 @@ class BillItemFactory extends Factory
     {
         $quantity = $this->faker->randomFloat(2, 1, 100);
         $unitPrice = $this->faker->randomElement([50000, 100000, 250000, 500000, 1000000]);
-        $amount = (int) round($quantity * $unitPrice);
+        $lineTotal = (int) round($quantity * $unitPrice);
 
         return [
             'bill_id' => Bill::factory(),
@@ -26,7 +26,12 @@ class BillItemFactory extends Factory
             'quantity' => $quantity,
             'unit' => $this->faker->randomElement(['unit', 'pcs', 'kg', 'liter', 'jam']),
             'unit_price' => $unitPrice,
-            'amount' => $amount,
+            'discount_percent' => 0,
+            'discount_amount' => 0,
+            'tax_rate' => 0,
+            'tax_amount' => 0,
+            'line_total' => $lineTotal,
+            'sort_order' => 0,
             'expense_account_id' => null,
         ];
     }
@@ -50,7 +55,7 @@ class BillItemFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
-            'amount' => (int) round($quantity * $unitPrice),
+            'line_total' => (int) round($quantity * $unitPrice),
         ]);
     }
 }

@@ -60,6 +60,26 @@ class QuotationResource extends JsonResource
             'rejected_by' => $this->rejected_by,
             'rejection_reason' => $this->rejection_reason,
 
+            // Follow-up tracking
+            'next_follow_up_at' => $this->next_follow_up_at?->toIso8601String(),
+            'last_contacted_at' => $this->last_contacted_at?->toIso8601String(),
+            'assigned_to' => $this->assigned_to,
+            'assigned_user' => new UserResource($this->whenLoaded('assignedTo')),
+            'follow_up_count' => $this->follow_up_count,
+            'priority' => $this->priority,
+            'priority_label' => $this->getPriorityLabel(),
+            'needs_follow_up' => $this->needsFollowUp(),
+            'days_since_last_contact' => $this->getDaysSinceLastContact(),
+
+            // Win/Loss outcome
+            'outcome' => $this->outcome,
+            'outcome_label' => $this->getOutcomeLabel(),
+            'won_reason' => $this->won_reason,
+            'lost_reason' => $this->lost_reason,
+            'lost_to_competitor' => $this->lost_to_competitor,
+            'outcome_notes' => $this->outcome_notes,
+            'outcome_at' => $this->outcome_at?->toIso8601String(),
+
             'converted_to_invoice_id' => $this->converted_to_invoice_id,
             'converted_at' => $this->converted_at?->toIso8601String(),
 
@@ -77,6 +97,7 @@ class QuotationResource extends JsonResource
             'items' => QuotationItemResource::collection($this->whenLoaded('items')),
             'revisions' => QuotationResource::collection($this->whenLoaded('revisions')),
             'converted_invoice' => new InvoiceResource($this->whenLoaded('convertedInvoice')),
+            'activities' => QuotationActivityResource::collection($this->whenLoaded('activities')),
 
             'created_by' => $this->created_by,
             'created_at' => $this->created_at->toIso8601String(),

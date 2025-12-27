@@ -17,7 +17,13 @@ class InvoiceItem extends Model
         'quantity',
         'unit',
         'unit_price',
-        'amount',
+        'discount_percent',
+        'discount_amount',
+        'tax_rate',
+        'tax_amount',
+        'line_total',
+        'sort_order',
+        'notes',
         'revenue_account_id',
     ];
 
@@ -26,7 +32,12 @@ class InvoiceItem extends Model
         return [
             'quantity' => 'decimal:4',
             'unit_price' => 'integer',
-            'amount' => 'integer',
+            'discount_percent' => 'decimal:2',
+            'discount_amount' => 'integer',
+            'tax_rate' => 'decimal:2',
+            'tax_amount' => 'integer',
+            'line_total' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -55,11 +66,18 @@ class InvoiceItem extends Model
     }
 
     /**
-     * Calculate and set the amount.
+     * Calculate and set the line total.
      */
-    public function calculateAmount(): void
+    public function calculateLineTotal(): void
     {
-        $this->amount = (int) round($this->quantity * $this->unit_price);
+        $subtotal = (int) round($this->quantity * $this->unit_price);
+        $discountAmount = $this->discount_amount ?: (int) round($subtotal * ($this->discount_percent ?? 0) / 100);
+        $afterDiscount = $subtotal - $discountAmount;
+        $taxAmount = $this->tax_amount ?: (int) round($afterDiscount * ($this->tax_rate ?? 0) / 100);
+
+        $this->discount_amount = $discountAmount;
+        $this->tax_amount = $taxAmount;
+        $this->line_total = $afterDiscount + $taxAmount;
     }
 
     /**
@@ -73,6 +91,6 @@ class InvoiceItem extends Model
         $this->unit_price = $product->selling_price;
         $this->quantity = $quantity;
         $this->revenue_account_id = $product->sales_account_id;
-        $this->calculateAmount();
+        $this->calculateLineTotal();
     }
 }

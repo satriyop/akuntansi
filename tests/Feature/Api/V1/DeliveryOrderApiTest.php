@@ -9,12 +9,13 @@ use App\Models\Accounting\Product;
 use App\Models\Accounting\Warehouse;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    $this->actingAs($this->user);
+    Sanctum::actingAs($this->user);
 });
 
 describe('Delivery Order CRUD', function () {

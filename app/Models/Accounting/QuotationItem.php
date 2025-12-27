@@ -24,6 +24,7 @@ class QuotationItem extends Model
         'line_total',
         'sort_order',
         'notes',
+        'revenue_account_id',
     ];
 
     protected function casts(): array
@@ -54,6 +55,14 @@ class QuotationItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @return BelongsTo<Account, $this>
+     */
+    public function revenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'revenue_account_id');
     }
 
     /**
@@ -93,6 +102,7 @@ class QuotationItem extends Model
         $this->unit_price = $product->selling_price;
         $this->quantity = $quantity;
         $this->tax_rate = config('accounting.tax.default_rate', 11.00);
+        $this->revenue_account_id = $product->sales_account_id;
         $this->calculateLineTotal();
     }
 

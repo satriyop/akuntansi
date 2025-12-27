@@ -8,24 +8,30 @@ use App\Models\Accounting\DownPaymentApplication;
 use App\Models\Accounting\Invoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    $this->actingAs($this->user);
+    Sanctum::actingAs($this->user);
 
-    // Create default accounts with unique codes
+    // Seed chart of accounts
+    $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
+
+    // Create additional accounts with unique codes
     $this->bankAccount = Account::factory()->create([
         'code' => '1111',
-        'name' => 'Bank BCA',
-        'type' => 'asset',
-        'subtype' => 'current_asset',
     ]);
-    Account::factory()->create(['code' => '1130', 'name' => 'Piutang Usaha', 'type' => 'asset', 'subtype' => 'current_asset']);
-    Account::factory()->create(['code' => '1140', 'name' => 'Uang Muka Pembelian', 'type' => 'asset', 'subtype' => 'current_asset']);
-    Account::factory()->create(['code' => '2110', 'name' => 'Hutang Usaha', 'type' => 'liability', 'subtype' => 'current_liability']);
-    Account::factory()->create(['code' => '2130', 'name' => 'Uang Muka Penjualan', 'type' => 'liability', 'subtype' => 'current_liability']);
+    $this->downPaymentAccount = Account::factory()->downPaymentAsset()->create([
+        'code' => '1510',
+    ]);
+    $this->discountGivenAccount = Account::factory()->revenue()->create([
+        'code' => '4100',
+    ]);
+    $this->discountReceivedAccount = Account::factory()->expense()->create([
+        'code' => '5300',
+    ]);
 });
 
 describe('Down Payment CRUD', function () {
@@ -209,7 +215,7 @@ describe('Down Payment Apply to Invoice', function () {
     it('can apply receivable down payment to invoice', function () {
         $contact = Contact::factory()->customer()->create();
         $bankAccount = Account::where('code', '1111')->first();
-        $receivableAccount = Account::where('code', '1130')->first();
+        $receivableAccount = Account::where('code', '1-1100')->first();
 
         $downPayment = DownPayment::factory()->receivable()->forContact($contact)->create([
             'amount' => 10000000,
@@ -325,7 +331,7 @@ describe('Down Payment Apply to Invoice', function () {
     it('marks invoice as paid when fully covered', function () {
         $contact = Contact::factory()->customer()->create();
         $bankAccount = Account::where('code', '1111')->first();
-        $receivableAccount = Account::where('code', '1130')->first();
+        $receivableAccount = Account::where('code', '1-1100')->first();
 
         $downPayment = DownPayment::factory()->receivable()->forContact($contact)->create([
             'amount' => 10000000,
@@ -356,7 +362,7 @@ describe('Down Payment Apply to Bill', function () {
     it('can apply payable down payment to bill', function () {
         $contact = Contact::factory()->vendor()->create();
         $bankAccount = Account::where('code', '1111')->first();
-        $payableAccount = Account::where('code', '2110')->first();
+        $payableAccount = Account::where('code', '2-1100')->first();
 
         $downPayment = DownPayment::factory()->payable()->forContact($contact)->create([
             'amount' => 10000000,
@@ -410,7 +416,7 @@ describe('Down Payment Unapply', function () {
     it('can unapply (reverse) a down payment application', function () {
         $contact = Contact::factory()->customer()->create();
         $bankAccount = Account::where('code', '1111')->first();
-        $receivableAccount = Account::where('code', '1130')->first();
+        $receivableAccount = Account::where('code', '1-1100')->first();
 
         $downPayment = DownPayment::factory()->receivable()->forContact($contact)->create([
             'amount' => 10000000,
@@ -662,7 +668,7 @@ describe('Down Payment Status Updates', function () {
     it('marks as fully applied when all amount is used', function () {
         $contact = Contact::factory()->customer()->create();
         $bankAccount = Account::where('code', '1111')->first();
-        $receivableAccount = Account::where('code', '1130')->first();
+        $receivableAccount = Account::where('code', '1-1100')->first();
 
         $downPayment = DownPayment::factory()->receivable()->forContact($contact)->create([
             'amount' => 5000000,

@@ -19,7 +19,7 @@ class InvoiceItemFactory extends Factory
     {
         $quantity = $this->faker->randomFloat(2, 1, 100);
         $unitPrice = $this->faker->randomElement([50000, 100000, 250000, 500000, 1000000]);
-        $amount = (int) round($quantity * $unitPrice);
+        $lineTotal = (int) round($quantity * $unitPrice);
 
         return [
             'invoice_id' => Invoice::factory(),
@@ -28,7 +28,12 @@ class InvoiceItemFactory extends Factory
             'quantity' => $quantity,
             'unit' => $this->faker->randomElement(['unit', 'pcs', 'kg', 'liter', 'jam']),
             'unit_price' => $unitPrice,
-            'amount' => $amount,
+            'discount_percent' => 0,
+            'discount_amount' => 0,
+            'tax_rate' => 0,
+            'tax_amount' => 0,
+            'line_total' => $lineTotal,
+            'sort_order' => 0,
             'revenue_account_id' => null,
         ];
     }
@@ -40,7 +45,7 @@ class InvoiceItemFactory extends Factory
             'description' => $product->name,
             'unit' => $product->unit,
             'unit_price' => $product->selling_price,
-            'amount' => (int) round(($attributes['quantity'] ?? 1) * $product->selling_price),
+            'line_total' => (int) round(($attributes['quantity'] ?? 1) * $product->selling_price),
         ]);
     }
 
@@ -63,7 +68,7 @@ class InvoiceItemFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
-            'amount' => (int) round($quantity * $unitPrice),
+            'line_total' => (int) round($quantity * $unitPrice),
         ]);
     }
 }

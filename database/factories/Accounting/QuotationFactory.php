@@ -209,4 +209,58 @@ class QuotationFactory extends Factory
             ];
         });
     }
+
+    public function withFollowUp(int $daysFromNow = 3): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'next_follow_up_at' => now()->addDays($daysFromNow),
+        ]);
+    }
+
+    public function overdueFollowUp(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'next_follow_up_at' => now()->subDays(2),
+        ]);
+    }
+
+    public function assignedTo(User $user): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'assigned_to' => $user->id,
+        ]);
+    }
+
+    public function highPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => Quotation::PRIORITY_HIGH,
+        ]);
+    }
+
+    public function urgentPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => Quotation::PRIORITY_URGENT,
+        ]);
+    }
+
+    public function won(string $reason = 'harga_kompetitif'): static
+    {
+        return $this->approved()->state(fn (array $attributes) => [
+            'outcome' => Quotation::OUTCOME_WON,
+            'won_reason' => $reason,
+            'outcome_at' => now(),
+        ]);
+    }
+
+    public function lost(string $reason = 'harga_tinggi', ?string $competitor = null): static
+    {
+        return $this->approved()->state(fn (array $attributes) => [
+            'outcome' => Quotation::OUTCOME_LOST,
+            'lost_reason' => $reason,
+            'lost_to_competitor' => $competitor,
+            'outcome_at' => now(),
+        ]);
+    }
 }

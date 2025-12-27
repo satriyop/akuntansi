@@ -284,7 +284,7 @@ class PurchaseReturnService
     {
         $item = new PurchaseReturnItem($data);
         $item->purchase_return_id = $purchaseReturn->id;
-        $item->calculateAmount();
+        $item->calculateLineTotal();
         $item->save();
 
         return $item;

@@ -7,18 +7,23 @@ use App\Models\Accounting\Contact;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\InvoiceItem;
 use App\Models\Accounting\Payment;
+use App\Models\User;
 use App\Services\Accounting\JournalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
 });
 
 describe('Payment API', function () {
-    
+
     it('can list all payments', function () {
         $account = Account::where('code', '1-1010')->first(); // Bank BCA
         Payment::factory()->withCashAccount($account)->count(3)->create();
@@ -59,7 +64,7 @@ describe('Payment API', function () {
             ->assertJsonPath('data.type', 'receive')
             ->assertJsonPath('data.amount', 1000000)
             ->assertJsonPath('data.payment_method', 'transfer');
-        
+
         // Verify journal entry was created
         $this->assertNotNull($response->json('data.journal_entry_id'));
     });
@@ -92,12 +97,12 @@ describe('Payment API', function () {
             'paid_amount' => 0,
         ]);
         InvoiceItem::factory()->forInvoice($invoice)->create([
-            'amount' => 1000000,
+            'line_total' => 1000000,
         ]);
-        
+
         // Post invoice first
         app(JournalService::class)->postInvoice($invoice->fresh());
-        
+
         $bankAccount = Account::where('code', '1-1010')->first();
 
         $response = $this->postJson('/api/v1/payments', [
@@ -112,7 +117,7 @@ describe('Payment API', function () {
 
         $response->assertCreated()
             ->assertJsonPath('data.payable_id', $invoice->id);
-        
+
         // Verify invoice paid amount was updated
         $invoice->refresh();
         expect($invoice->paid_amount)->toBe(500000);
@@ -129,12 +134,12 @@ describe('Payment API', function () {
             'paid_amount' => 0,
         ]);
         BillItem::factory()->forBill($bill)->create([
-            'amount' => 1000000,
+            'line_total' => 1000000,
         ]);
-        
+
         // Post bill first
         app(JournalService::class)->postBill($bill->fresh());
-        
+
         $bankAccount = Account::where('code', '1-1010')->first();
 
         $response = $this->postJson('/api/v1/payments', [
@@ -148,7 +153,7 @@ describe('Payment API', function () {
         ]);
 
         $response->assertCreated();
-        
+
         // Verify bill is fully paid
         $bill->refresh();
         expect($bill->paid_amount)->toBe(1110000);
@@ -168,7 +173,7 @@ describe('Payment API', function () {
             'total_amount' => 100000,
             'paid_amount' => 0,
         ]);
-        
+
         $bankAccount = Account::where('code', '1-1010')->first();
 
         $response = $this->postJson('/api/v1/payments', [
@@ -214,7 +219,7 @@ describe('Payment API', function () {
     it('can void a payment', function () {
         $customer = Contact::factory()->customer()->create();
         $bankAccount = Account::where('code', '1-1010')->first();
-        
+
         // Create a payment without invoice allocation for simpler test
         $payment = Payment::factory()
             ->receive()
@@ -222,14 +227,14 @@ describe('Payment API', function () {
             ->withCashAccount($bankAccount)
             ->withAmount(500000)
             ->create();
-        
+
         // Post payment to journal
         app(JournalService::class)->postPayment($payment);
 
         $response = $this->postJson("/api/v1/payments/{$payment->id}/void");
 
         $response->assertOk();
-        
+
         // Verify payment is voided
         $payment->refresh();
         expect($payment->is_voided)->toBeTrue();

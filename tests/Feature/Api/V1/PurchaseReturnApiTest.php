@@ -192,7 +192,7 @@ describe('Purchase Return Workflow', function () {
 
     it('can approve a submitted purchase return', function () {
         $purchaseReturn = PurchaseReturn::factory()->submitted()->withTotals(100000)->create();
-        PurchaseReturnItem::factory()->forPurchaseReturn($purchaseReturn)->withAmount(100000)->create();
+        PurchaseReturnItem::factory()->forPurchaseReturn($purchaseReturn)->withLineTotal(100000)->create();
 
         $response = $this->postJson("/api/v1/purchase-returns/{$purchaseReturn->id}/approve");
 

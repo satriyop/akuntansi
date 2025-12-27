@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\Schedule;
 |
 */
 
-// Mark overdue invoices and bills daily at 1:00 AM
-Schedule::command('accounting:mark-overdue')
-    ->dailyAt('01:00')
+// Mark overdue invoices and bills daily at 6:00 AM
+Schedule::command('documents:mark-overdue')
+    ->dailyAt('06:00')
     ->withoutOverlapping()
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/overdue.log'));

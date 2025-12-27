@@ -42,6 +42,7 @@ class PurchaseOrderItemFactory extends Factory
             'sort_order' => 0,
             'notes' => null,
             'last_received_at' => null,
+            'expense_account_id' => null,
         ];
     }
 
@@ -69,6 +70,7 @@ class PurchaseOrderItemFactory extends Factory
                 'unit_price' => $unitPrice,
                 'line_total' => $netAmount,
                 'tax_amount' => $taxAmount,
+                'expense_account_id' => $product->purchase_account_id ?? $product->cogs_account_id,
             ];
         });
     }

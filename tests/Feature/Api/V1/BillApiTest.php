@@ -3,17 +3,23 @@
 use App\Models\Accounting\Bill;
 use App\Models\Accounting\BillItem;
 use App\Models\Accounting\Contact;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
+
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 });
 
 describe('Bill API', function () {
-    
+
     it('can list all bills', function () {
         Bill::factory()->count(3)->create();
 
@@ -74,7 +80,7 @@ describe('Bill API', function () {
             ->assertJsonPath('data.status', 'draft')
             ->assertJsonPath('data.vendor_invoice_number', 'INV-SUP-001')
             ->assertJsonCount(2, 'data.items');
-        
+
         // Verify calculations: 2,500,000 + 750,000 = 3,250,000 subtotal
         // Tax: 3,250,000 * 11% = 357,500
         // Total: 3,607,500
@@ -149,7 +155,7 @@ describe('Bill API', function () {
             'total_amount' => 1110000,
         ]);
         BillItem::factory()->forBill($bill)->create([
-            'amount' => 1000000,
+            'line_total' => 1000000,
         ]);
 
         $response = $this->postJson("/api/v1/bills/{$bill->id}/post");
@@ -157,7 +163,7 @@ describe('Bill API', function () {
         $response->assertOk()
             ->assertJsonPath('data.status', 'received')
             ->assertJsonStructure(['data' => ['journal_entry']]);
-        
+
         $this->assertNotNull($response->json('data.journal_entry_id'));
     });
 

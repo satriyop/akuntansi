@@ -284,7 +284,7 @@ class SalesReturnService
     {
         $item = new SalesReturnItem($data);
         $item->sales_return_id = $salesReturn->id;
-        $item->calculateAmount();
+        $item->calculateLineTotal();
         $item->save();
 
         return $item;

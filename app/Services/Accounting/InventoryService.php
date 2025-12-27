@@ -111,9 +111,11 @@ class InventoryService
         Warehouse $warehouse,
         int $newQuantity,
         ?int $newUnitCost = null,
-        ?string $notes = null
+        ?string $notes = null,
+        ?string $referenceType = null,
+        ?int $referenceId = null
     ): InventoryMovement {
-        return DB::transaction(function () use ($product, $warehouse, $newQuantity, $newUnitCost, $notes) {
+        return DB::transaction(function () use ($product, $warehouse, $newQuantity, $newUnitCost, $notes, $referenceType, $referenceId) {
             $stock = ProductStock::getOrCreate($product, $warehouse);
             $quantityBefore = $stock->quantity;
             $quantityDiff = $newQuantity - $quantityBefore;
@@ -137,6 +139,8 @@ class InventoryService
                 'quantity_after' => $newQuantity,
                 'unit_cost' => $stock->average_cost,
                 'total_cost' => abs($quantityDiff) * $stock->average_cost,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
                 'movement_date' => now(),
                 'notes' => $notes ?? 'Penyesuaian stok',
                 'created_by' => auth()->id(),

@@ -4,9 +4,16 @@ use App\Models\Accounting\InventoryMovement;
 use App\Models\Accounting\Product;
 use App\Models\Accounting\ProductStock;
 use App\Models\Accounting\Warehouse;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+});
 
 describe('Inventory Stock In', function () {
 

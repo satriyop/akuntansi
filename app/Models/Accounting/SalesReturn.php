@@ -219,7 +219,7 @@ class SalesReturn extends Model
      */
     public function calculateTotals(): void
     {
-        $this->subtotal = (int) $this->items()->sum('amount');
+        $this->subtotal = (int) $this->items()->sum('line_total');
         $this->tax_amount = (int) round($this->subtotal * ($this->tax_rate / 100));
         $this->total_amount = $this->subtotal + $this->tax_amount;
     }

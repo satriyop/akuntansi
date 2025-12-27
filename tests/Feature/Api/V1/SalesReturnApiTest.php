@@ -192,7 +192,7 @@ describe('Sales Return Workflow', function () {
 
     it('can approve a submitted sales return', function () {
         $salesReturn = SalesReturn::factory()->submitted()->withTotals(100000)->create();
-        SalesReturnItem::factory()->forSalesReturn($salesReturn)->withAmount(100000)->create();
+        SalesReturnItem::factory()->forSalesReturn($salesReturn)->withLineTotal(100000)->create();
 
         $response = $this->postJson("/api/v1/sales-returns/{$salesReturn->id}/approve");
 

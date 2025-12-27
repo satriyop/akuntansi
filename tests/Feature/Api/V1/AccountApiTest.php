@@ -3,17 +3,23 @@
 use App\Models\Accounting\Account;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalEntryLine;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Seed default accounts
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
+
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 });
 
 describe('Account API', function () {
-    
+
     it('can list all accounts', function () {
         $response = $this->getJson('/api/v1/accounts');
 
@@ -31,7 +37,7 @@ describe('Account API', function () {
         $response = $this->getJson('/api/v1/accounts?type=asset');
 
         $response->assertOk();
-        
+
         foreach ($response->json('data') as $account) {
             expect($account['type'])->toBe('asset');
         }
@@ -56,7 +62,7 @@ describe('Account API', function () {
         $response->assertCreated()
             ->assertJsonPath('data.code', '1-9999')
             ->assertJsonPath('data.name', 'Test Account');
-        
+
         $this->assertDatabaseHas('accounts', ['code' => '1-9999']);
     });
 
@@ -69,7 +75,7 @@ describe('Account API', function () {
 
     it('prevents duplicate account codes', function () {
         $existing = Account::where('code', '1-1001')->first();
-        
+
         $response = $this->postJson('/api/v1/accounts', [
             'code' => '1-1001',
             'name' => 'Duplicate Account',

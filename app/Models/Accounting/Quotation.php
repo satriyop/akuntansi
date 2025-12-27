@@ -27,6 +27,46 @@ class Quotation extends Model
 
     public const STATUS_CONVERTED = 'converted';
 
+    // Win/Loss outcome constants
+    public const OUTCOME_WON = 'won';
+
+    public const OUTCOME_LOST = 'lost';
+
+    public const OUTCOME_CANCELLED = 'cancelled';
+
+    // Won reasons (in Indonesian)
+    public const WON_REASONS = [
+        'harga_kompetitif' => 'Harga Kompetitif',
+        'kualitas_produk' => 'Kualitas Produk',
+        'layanan_baik' => 'Layanan yang Baik',
+        'waktu_pengiriman' => 'Waktu Pengiriman Cepat',
+        'hubungan_baik' => 'Hubungan Baik dengan Pelanggan',
+        'spesifikasi_sesuai' => 'Spesifikasi Sesuai Kebutuhan',
+        'rekomendasi' => 'Rekomendasi dari Pelanggan Lain',
+        'lainnya' => 'Lainnya',
+    ];
+
+    // Lost reasons (in Indonesian)
+    public const LOST_REASONS = [
+        'harga_tinggi' => 'Harga Terlalu Tinggi',
+        'kalah_kompetitor' => 'Kalah dari Kompetitor',
+        'spesifikasi_tidak_sesuai' => 'Spesifikasi Tidak Sesuai',
+        'waktu_pengiriman_lama' => 'Waktu Pengiriman Terlalu Lama',
+        'proyek_dibatalkan' => 'Proyek Dibatalkan',
+        'tidak_ada_budget' => 'Tidak Ada Budget',
+        'tidak_ada_respon' => 'Tidak Ada Respon dari Pelanggan',
+        'lainnya' => 'Lainnya',
+    ];
+
+    // Priority levels
+    public const PRIORITY_LOW = 'low';
+
+    public const PRIORITY_NORMAL = 'normal';
+
+    public const PRIORITY_HIGH = 'high';
+
+    public const PRIORITY_URGENT = 'urgent';
+
     protected $fillable = [
         'quotation_number',
         'revision',
@@ -37,6 +77,13 @@ class Quotation extends Model
         'reference',
         'subject',
         'status',
+        // Follow-up fields
+        'next_follow_up_at',
+        'last_contacted_at',
+        'assigned_to',
+        'follow_up_count',
+        'priority',
+        // Financial fields
         'currency',
         'exchange_rate',
         'subtotal',
@@ -56,6 +103,13 @@ class Quotation extends Model
         'rejected_at',
         'rejected_by',
         'rejection_reason',
+        // Outcome fields
+        'outcome',
+        'won_reason',
+        'lost_reason',
+        'lost_to_competitor',
+        'outcome_notes',
+        'outcome_at',
         'converted_to_invoice_id',
         'converted_at',
         'original_quotation_id',
@@ -80,6 +134,12 @@ class Quotation extends Model
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
             'converted_at' => 'datetime',
+            // Follow-up casts
+            'next_follow_up_at' => 'datetime',
+            'last_contacted_at' => 'datetime',
+            'follow_up_count' => 'integer',
+            // Outcome casts
+            'outcome_at' => 'datetime',
         ];
     }
 
@@ -161,6 +221,22 @@ class Quotation extends Model
     public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * @return HasMany<QuotationActivity, $this>
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(QuotationActivity::class)->orderByDesc('activity_at');
     }
 
     /**
@@ -427,5 +503,206 @@ class Quotation extends Model
             ->max('revision');
 
         return ($maxRevision ?? 0) + 1;
+    }
+
+    // ========================================
+    // Follow-Up Scopes
+    // ========================================
+
+    /**
+     * Scope for quotations needing follow-up today or earlier.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeNeedsFollowUp(Builder $query): Builder
+    {
+        return $query->whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '<=', now())
+            ->active();
+    }
+
+    /**
+     * Scope for quotations with overdue follow-up.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeOverdueFollowUp(Builder $query): Builder
+    {
+        return $query->whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '<', now()->startOfDay())
+            ->active();
+    }
+
+    /**
+     * Scope for quotations assigned to a specific user.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeAssignedTo(Builder $query, int $userId): Builder
+    {
+        return $query->where('assigned_to', $userId);
+    }
+
+    /**
+     * Scope for quotations with high priority.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeHighPriority(Builder $query): Builder
+    {
+        return $query->whereIn('priority', [self::PRIORITY_HIGH, self::PRIORITY_URGENT]);
+    }
+
+    /**
+     * Scope for quotations that are won.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeWon(Builder $query): Builder
+    {
+        return $query->where('outcome', self::OUTCOME_WON);
+    }
+
+    /**
+     * Scope for quotations that are lost.
+     *
+     * @param  Builder<Quotation>  $query
+     * @return Builder<Quotation>
+     */
+    public function scopeLost(Builder $query): Builder
+    {
+        return $query->where('outcome', self::OUTCOME_LOST);
+    }
+
+    // ========================================
+    // Follow-Up Methods
+    // ========================================
+
+    /**
+     * Schedule next follow-up.
+     */
+    public function scheduleFollowUp(int $daysFromNow = 3): void
+    {
+        $this->next_follow_up_at = now()->addDays($daysFromNow);
+        $this->save();
+    }
+
+    /**
+     * Record a contact activity and update last_contacted_at.
+     */
+    public function recordContact(): void
+    {
+        $this->last_contacted_at = now();
+        $this->follow_up_count = ($this->follow_up_count ?? 0) + 1;
+        $this->save();
+    }
+
+    /**
+     * Calculate auto follow-up date based on quotation stage.
+     */
+    public function calculateAutoFollowUpDate(): ?\DateTime
+    {
+        // If already has outcome, no follow-up needed
+        if ($this->outcome !== null) {
+            return null;
+        }
+
+        // Follow-up schedule based on status and time elapsed
+        return match ($this->status) {
+            self::STATUS_SUBMITTED => now()->addDays(3)->toDateTime(),
+            self::STATUS_APPROVED => now()->addDays(7)->toDateTime(),
+            default => null,
+        };
+    }
+
+    /**
+     * Check if quotation needs follow-up.
+     */
+    public function needsFollowUp(): bool
+    {
+        if ($this->next_follow_up_at === null) {
+            return false;
+        }
+
+        return $this->next_follow_up_at->isPast() && $this->outcome === null;
+    }
+
+    /**
+     * Get days since last contact.
+     */
+    public function getDaysSinceLastContact(): ?int
+    {
+        if ($this->last_contacted_at === null) {
+            return null;
+        }
+
+        return (int) $this->last_contacted_at->diffInDays(now());
+    }
+
+    // ========================================
+    // Outcome Methods
+    // ========================================
+
+    /**
+     * Mark quotation as won.
+     *
+     * @param  array{won_reason?: string, outcome_notes?: string}  $data
+     */
+    public function markAsWon(array $data = []): void
+    {
+        $this->outcome = self::OUTCOME_WON;
+        $this->won_reason = $data['won_reason'] ?? null;
+        $this->outcome_notes = $data['outcome_notes'] ?? null;
+        $this->outcome_at = now();
+        $this->next_follow_up_at = null; // Clear follow-up when won
+        $this->save();
+    }
+
+    /**
+     * Mark quotation as lost.
+     *
+     * @param  array{lost_reason?: string, lost_to_competitor?: string, outcome_notes?: string}  $data
+     */
+    public function markAsLost(array $data = []): void
+    {
+        $this->outcome = self::OUTCOME_LOST;
+        $this->lost_reason = $data['lost_reason'] ?? null;
+        $this->lost_to_competitor = $data['lost_to_competitor'] ?? null;
+        $this->outcome_notes = $data['outcome_notes'] ?? null;
+        $this->outcome_at = now();
+        $this->next_follow_up_at = null; // Clear follow-up when lost
+        $this->save();
+    }
+
+    /**
+     * Get outcome label in Indonesian.
+     */
+    public function getOutcomeLabel(): ?string
+    {
+        return match ($this->outcome) {
+            self::OUTCOME_WON => 'Menang',
+            self::OUTCOME_LOST => 'Kalah',
+            self::OUTCOME_CANCELLED => 'Dibatalkan',
+            default => null,
+        };
+    }
+
+    /**
+     * Get priority label in Indonesian.
+     */
+    public function getPriorityLabel(): string
+    {
+        return match ($this->priority) {
+            self::PRIORITY_LOW => 'Rendah',
+            self::PRIORITY_NORMAL => 'Normal',
+            self::PRIORITY_HIGH => 'Tinggi',
+            self::PRIORITY_URGENT => 'Mendesak',
+            default => $this->priority ?? 'Normal',
+        };
     }
 }

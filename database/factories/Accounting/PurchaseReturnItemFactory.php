@@ -24,7 +24,13 @@ class PurchaseReturnItemFactory extends Factory
     {
         $quantity = $this->faker->randomFloat(2, 1, 10);
         $unitPrice = $this->faker->numberBetween(10000, 500000);
-        $amount = (int) round($quantity * $unitPrice);
+        $subtotal = (int) round($quantity * $unitPrice);
+        $discountPercent = $this->faker->randomElement([0, 5, 10]);
+        $discountAmount = (int) round($subtotal * $discountPercent / 100);
+        $afterDiscount = $subtotal - $discountAmount;
+        $taxRate = $this->faker->randomElement([0, 11]);
+        $taxAmount = (int) round($afterDiscount * $taxRate / 100);
+        $lineTotal = $afterDiscount + $taxAmount;
 
         return [
             'purchase_return_id' => PurchaseReturn::factory(),
@@ -34,7 +40,12 @@ class PurchaseReturnItemFactory extends Factory
             'quantity' => $quantity,
             'unit' => $this->faker->randomElement(['pcs', 'unit', 'set', 'box', 'kg', 'm']),
             'unit_price' => $unitPrice,
-            'amount' => $amount,
+            'discount_percent' => $discountPercent,
+            'discount_amount' => $discountAmount,
+            'tax_rate' => $taxRate,
+            'tax_amount' => $taxAmount,
+            'line_total' => $lineTotal,
+            'sort_order' => 0,
             'condition' => $this->faker->randomElement([
                 PurchaseReturnItem::CONDITION_GOOD,
                 PurchaseReturnItem::CONDITION_DAMAGED,
@@ -69,7 +80,12 @@ class PurchaseReturnItemFactory extends Factory
                 'quantity' => $item->quantity,
                 'unit' => $item->unit,
                 'unit_price' => $item->unit_price,
-                'amount' => $item->amount,
+                'discount_percent' => $item->discount_percent,
+                'discount_amount' => $item->discount_amount,
+                'tax_rate' => $item->tax_rate,
+                'tax_amount' => $item->tax_amount,
+                'line_total' => $item->line_total,
+                'sort_order' => $item->sort_order,
             ];
         });
     }
@@ -97,25 +113,47 @@ class PurchaseReturnItemFactory extends Factory
     {
         return $this->state(function (array $attributes) use ($quantity) {
             $unitPrice = $attributes['unit_price'] ?? 100000;
-            $amount = (int) round($quantity * $unitPrice);
+            $discountPercent = $attributes['discount_percent'] ?? 0;
+            $taxRate = $attributes['tax_rate'] ?? 0;
+
+            $subtotal = (int) round($quantity * $unitPrice);
+            $discountAmount = (int) round($subtotal * $discountPercent / 100);
+            $afterDiscount = $subtotal - $discountAmount;
+            $taxAmount = (int) round($afterDiscount * $taxRate / 100);
+            $lineTotal = $afterDiscount + $taxAmount;
 
             return [
                 'quantity' => $quantity,
-                'amount' => $amount,
+                'discount_amount' => $discountAmount,
+                'tax_amount' => $taxAmount,
+                'line_total' => $lineTotal,
             ];
         });
     }
 
     /**
-     * With specific amount.
+     * With specific line total.
      */
-    public function withAmount(int $unitPrice, float $quantity = 1): static
+    public function withLineTotal(int $unitPrice, float $quantity = 1): static
     {
-        return $this->state(fn (array $attributes) => [
-            'unit_price' => $unitPrice,
-            'quantity' => $quantity,
-            'amount' => (int) round($quantity * $unitPrice),
-        ]);
+        return $this->state(function (array $attributes) use ($unitPrice, $quantity) {
+            $discountPercent = $attributes['discount_percent'] ?? 0;
+            $taxRate = $attributes['tax_rate'] ?? 0;
+
+            $subtotal = (int) round($quantity * $unitPrice);
+            $discountAmount = (int) round($subtotal * $discountPercent / 100);
+            $afterDiscount = $subtotal - $discountAmount;
+            $taxAmount = (int) round($afterDiscount * $taxRate / 100);
+            $lineTotal = $afterDiscount + $taxAmount;
+
+            return [
+                'unit_price' => $unitPrice,
+                'quantity' => $quantity,
+                'discount_amount' => $discountAmount,
+                'tax_amount' => $taxAmount,
+                'line_total' => $lineTotal,
+            ];
+        });
     }
 
     /**

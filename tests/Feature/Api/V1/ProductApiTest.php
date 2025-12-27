@@ -4,11 +4,16 @@ use App\Models\Accounting\Invoice;
 use App\Models\Accounting\InvoiceItem;
 use App\Models\Accounting\Product;
 use App\Models\Accounting\ProductCategory;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
 });
 

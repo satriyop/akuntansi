@@ -19,6 +19,8 @@ class MaterialRequisitionItem extends Model
         'quantity_issued',
         'quantity_pending',
         'unit',
+        'unit_cost',
+        'estimated_total_cost',
         'warehouse_location',
         'notes',
     ];
@@ -30,6 +32,8 @@ class MaterialRequisitionItem extends Model
             'quantity_approved' => 'decimal:4',
             'quantity_issued' => 'decimal:4',
             'quantity_pending' => 'decimal:4',
+            'unit_cost' => 'integer',
+            'estimated_total_cost' => 'integer',
         ];
     }
 
@@ -71,5 +75,22 @@ class MaterialRequisitionItem extends Model
     public function calculatePendingQuantity(): void
     {
         $this->quantity_pending = max(0, (float) $this->quantity_approved - (float) $this->quantity_issued);
+    }
+
+    /**
+     * Calculate estimated total cost based on quantity requested and unit cost.
+     */
+    public function calculateEstimatedTotalCost(): void
+    {
+        $this->estimated_total_cost = (int) round((float) $this->quantity_requested * $this->unit_cost);
+    }
+
+    /**
+     * Fill cost from product.
+     */
+    public function fillCostFromProduct(Product $product): void
+    {
+        $this->unit_cost = $product->purchase_price ?? $product->selling_price ?? 0;
+        $this->calculateEstimatedTotalCost();
     }
 }

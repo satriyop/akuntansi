@@ -26,6 +26,7 @@ class PurchaseOrderItem extends Model
         'sort_order',
         'notes',
         'last_received_at',
+        'expense_account_id',
     ];
 
     protected function casts(): array
@@ -58,6 +59,14 @@ class PurchaseOrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @return BelongsTo<Account, $this>
+     */
+    public function expenseAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'expense_account_id');
     }
 
     /**
@@ -95,6 +104,7 @@ class PurchaseOrderItem extends Model
         $this->unit_price = $product->purchase_price ?? $product->selling_price;
         $this->quantity = $quantity;
         $this->tax_rate = config('accounting.tax.default_rate', 11.00);
+        $this->expense_account_id = $product->purchase_account_id ?? $product->cogs_account_id;
         $this->calculateLineTotal();
     }
 
@@ -141,5 +151,6 @@ class PurchaseOrderItem extends Model
     {
         $this->quantity_received += $quantity;
         $this->last_received_at = now();
+        $this->save();
     }
 }

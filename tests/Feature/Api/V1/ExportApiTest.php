@@ -4,13 +4,19 @@ use App\Models\Accounting\Account;
 use App\Models\Accounting\Bill;
 use App\Models\Accounting\Contact;
 use App\Models\Accounting\Invoice;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
+
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 });
 
 describe('Export API', function () {
@@ -128,7 +134,7 @@ describe('Export API', function () {
             'tax_amount' => 110000,
         ]);
 
-        $response = $this->get('/api/v1/export/tax-report?month=' . now()->month . '&year=' . now()->year . '&format=csv');
+        $response = $this->get('/api/v1/export/tax-report?month='.now()->month.'&year='.now()->year.'&format=csv');
 
         $response->assertOk()
             ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');

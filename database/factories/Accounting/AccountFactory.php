@@ -169,4 +169,14 @@ class AccountFactory extends Factory
             'is_system' => true,
         ]);
     }
+
+    public function downPaymentAsset(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'code' => $this->faker->unique()->numerify('1-15##'),
+            'name' => 'Uang Muka',
+            'type' => Account::TYPE_ASSET,
+            'subtype' => Account::SUBTYPE_CURRENT_ASSET,
+        ]);
+    }
 }

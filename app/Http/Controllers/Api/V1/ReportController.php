@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Accounting\Account;
 use App\Models\Accounting\Contact;
+use App\Models\Accounting\Product;
 use App\Models\Accounting\Project;
 use App\Models\Accounting\WorkOrder;
 use App\Services\Accounting\AccountBalanceService;
 use App\Services\Accounting\AgingReportService;
+use App\Services\Accounting\BankReconciliationReportService;
 use App\Services\Accounting\CashFlowReportService;
+use App\Services\Accounting\COGSReportService;
 use App\Services\Accounting\FinancialReportService;
 use App\Services\Accounting\ProjectReportService;
 use App\Services\Accounting\SubcontractorReportService;
@@ -28,7 +32,9 @@ class ReportController extends Controller
         private CashFlowReportService $cashFlowService,
         private ProjectReportService $projectReportService,
         private WorkOrderReportService $workOrderReportService,
-        private SubcontractorReportService $subcontractorReportService
+        private SubcontractorReportService $subcontractorReportService,
+        private BankReconciliationReportService $bankReconciliationService,
+        private COGSReportService $cogsService
     ) {}
 
     /**
@@ -426,5 +432,170 @@ class ReportController extends Controller
         $report = $this->subcontractorReportService->getRetentionSummary();
 
         return response()->json($report);
+    }
+
+    /**
+     * Laporan Perubahan Ekuitas (Statement of Changes in Equity).
+     */
+    public function changesInEquity(Request $request): JsonResponse
+    {
+        $report = $this->reportService->getStatementOfChangesInEquity(
+            $request->input('start_date'),
+            $request->input('end_date')
+        );
+
+        return response()->json([
+            'report_name' => 'Laporan Perubahan Ekuitas',
+            ...$report,
+        ]);
+    }
+
+    /**
+     * Laporan Rekonsiliasi Bank.
+     */
+    public function bankReconciliation(Request $request, Account $account): JsonResponse
+    {
+        $report = $this->bankReconciliationService->getReconciliationReport(
+            $account,
+            $request->input('as_of_date')
+        );
+
+        return response()->json([
+            'report_name' => 'Laporan Rekonsiliasi Bank',
+            ...$report,
+        ]);
+    }
+
+    /**
+     * Item Outstanding untuk Rekonsiliasi Bank.
+     */
+    public function bankReconciliationOutstanding(Request $request, Account $account): JsonResponse
+    {
+        $report = $this->bankReconciliationService->getOutstandingItems(
+            $account,
+            $request->input('as_of_date')
+        );
+
+        return response()->json([
+            'report_name' => 'Item Outstanding Rekonsiliasi',
+            'account' => [
+                'id' => $account->id,
+                'code' => $account->code,
+                'name' => $account->name,
+            ],
+            'as_of_date' => $request->input('as_of_date') ?? now()->toDateString(),
+            ...$report,
+        ]);
+    }
+
+    /**
+     * Laporan Ringkasan HPP (COGS Summary).
+     */
+    public function cogsSummary(Request $request): JsonResponse
+    {
+        $report = $this->cogsService->getCOGSSummary(
+            $request->input('start_date'),
+            $request->input('end_date')
+        );
+
+        return response()->json([
+            'report_name' => 'Laporan Harga Pokok Penjualan',
+            ...$report,
+        ]);
+    }
+
+    /**
+     * Laporan HPP per Produk.
+     */
+    public function cogsByProduct(Request $request): JsonResponse
+    {
+        $products = $this->cogsService->getCOGSByProduct(
+            $request->input('start_date'),
+            $request->input('end_date')
+        );
+
+        $startDate = $request->input('start_date') ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->input('end_date') ?? now()->endOfMonth()->toDateString();
+
+        return response()->json([
+            'report_name' => 'Laporan HPP per Produk',
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'products' => $products,
+            'total_cogs' => $products->sum('total_cogs'),
+        ]);
+    }
+
+    /**
+     * Laporan HPP per Kategori.
+     */
+    public function cogsByCategory(Request $request): JsonResponse
+    {
+        $categories = $this->cogsService->getCOGSByCategory(
+            $request->input('start_date'),
+            $request->input('end_date')
+        );
+
+        $startDate = $request->input('start_date') ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->input('end_date') ?? now()->endOfMonth()->toDateString();
+
+        return response()->json([
+            'report_name' => 'Laporan HPP per Kategori',
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'categories' => $categories,
+            'total_cogs' => $categories->sum('total_cogs'),
+        ]);
+    }
+
+    /**
+     * Laporan Trend HPP Bulanan.
+     */
+    public function cogsMonthlyTrend(Request $request): JsonResponse
+    {
+        $year = (int) $request->input('year', now()->year);
+        $months = $this->cogsService->getMonthlyCOGSTrend($year);
+
+        return response()->json([
+            'report_name' => "Trend HPP Tahun {$year}",
+            'year' => $year,
+            'months' => $months,
+            'total_cogs' => $months->sum('cogs'),
+        ]);
+    }
+
+    /**
+     * Laporan Detail HPP Produk.
+     */
+    public function productCOGSDetail(Request $request, Product $product): JsonResponse
+    {
+        $details = $this->cogsService->getProductCOGSDetail(
+            $product,
+            $request->input('start_date'),
+            $request->input('end_date')
+        );
+
+        $startDate = $request->input('start_date') ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->input('end_date') ?? now()->endOfMonth()->toDateString();
+
+        return response()->json([
+            'report_name' => 'Detail HPP Produk',
+            'product' => [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'name' => $product->name,
+            ],
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'movements' => $details,
+            'total_quantity' => $details->sum('quantity'),
+            'total_cogs' => $details->sum('total_cost'),
+        ]);
     }
 }

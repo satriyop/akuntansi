@@ -40,6 +40,7 @@ class QuotationItemFactory extends Factory
             'line_total' => $lineTotal,
             'sort_order' => 0,
             'notes' => null,
+            'revenue_account_id' => null,
         ];
     }
 
@@ -67,6 +68,7 @@ class QuotationItemFactory extends Factory
                 'unit_price' => $unitPrice,
                 'line_total' => $netAmount,
                 'tax_amount' => $taxAmount,
+                'revenue_account_id' => $product->sales_account_id,
             ];
         });
     }

@@ -2,12 +2,20 @@
 
 use App\Models\Accounting\Contact;
 use App\Models\Accounting\Invoice;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+});
+
 describe('Contact API', function () {
-    
+
     it('can list all contacts', function () {
         Contact::factory()->count(5)->create();
 
@@ -66,7 +74,7 @@ describe('Contact API', function () {
         $response->assertCreated()
             ->assertJsonPath('data.code', 'C-0001')
             ->assertJsonPath('data.type', 'customer');
-        
+
         $this->assertDatabaseHas('contacts', ['code' => 'C-0001']);
     });
 

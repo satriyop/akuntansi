@@ -3,17 +3,23 @@
 use App\Models\Accounting\Account;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalEntryLine;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ChartOfAccountsSeeder']);
     $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\FiscalPeriodSeeder']);
+
+    // Authenticate user
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 });
 
 describe('Journal Entry API', function () {
-    
+
     it('can list all journal entries', function () {
         JournalEntry::factory()->count(3)->create();
 
@@ -177,7 +183,7 @@ describe('Journal Entry API', function () {
 
         $response->assertOk()
             ->assertJsonPath('data.is_posted', true);
-        
+
         // Verify original entry is marked as reversed
         $this->assertDatabaseHas('journal_entries', [
             'id' => $entry->id,
